@@ -1,0 +1,35 @@
+{
+  "name": "react-federation-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise Portal with Micro-Frontend Architecture - Monorepo",
+  "scripts": {
+    "dev": "pnpm --parallel --filter './packages/*' dev",
+    "dev:portal": "pnpm --filter portal dev",
+    "dev:trade-plans": "pnpm --filter trade-plans dev",
+    "dev:client-verification": "pnpm --filter client-verification dev",
+    "dev:annuity-sales": "pnpm --filter annuity-sales dev",
+    "build": "pnpm --recursive build",
+    "build:portal": "pnpm --filter portal build",
+    "build:trade-plans": "pnpm --filter trade-plans build",
+    "build:client-verification": "pnpm --filter client-verification build",
+    "build:annuity-sales": "pnpm --filter annuity-sales build",
+    "lint": "pnpm --recursive lint",
+    "test": "pnpm --recursive test",
+    "test:portal": "pnpm --filter portal test",
+    "test:trade-plans": "pnpm --filter trade-plans test",
+    "test:coverage": "pnpm --recursive test:coverage",
+    "test:e2e": "pnpm --filter portal test:e2e",
+    "test:all": "pnpm test && pnpm test:e2e",
+    "clean": "pnpm --recursive clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.11.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
+

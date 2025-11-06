@@ -94,6 +94,23 @@ This directory contains comprehensive documentation for the Enterprise Portal wi
     - MSW setup
     - Development workflow
 
+13. **[Testing Strategy](./testing-strategy.md)**
+    - Testing philosophy
+    - Testing pyramid
+    - Test structure
+    - Coverage goals
+
+14. **[Testing Guide](./testing-guide.md)**
+    - Running tests
+    - Writing tests
+    - Test examples
+    - Troubleshooting
+
+15. **[Testing Summary](./TESTING_SUMMARY.md)**
+    - Test results
+    - Coverage status
+    - Test infrastructure
+
 ## Quick Start
 
 ### For Developers
