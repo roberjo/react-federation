@@ -82,6 +82,18 @@ This directory contains comprehensive documentation for the Enterprise Portal wi
     - ADR-0002: Token Sharing Strategy - Props Injection
     - ADR-0003: Manifest Management - S3/CDN Approach
 
+11. **[Monorepo Setup Guide](./monorepo-setup.md)**
+    - Monorepo structure
+    - Package configuration
+    - Workspace setup
+    - Shared package setup
+
+12. **[Mocking Guide](./mocking-guide.md)**
+    - Mock Okta authentication
+    - Mock data services APIs
+    - MSW setup
+    - Development workflow
+
 ## Quick Start
 
 ### For Developers
