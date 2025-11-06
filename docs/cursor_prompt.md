@@ -180,7 +180,7 @@ export default defineConfig({
 })
 ```
 
-#### Manifest Service (Dynamic Remote Loading)
+#### Manifest Service (S3/CDN Approach)
 ```typescript
 // portal-repo/src/services/manifestService.ts
 interface RemoteConfig {
@@ -200,42 +200,76 @@ interface Manifest {
 }
 
 let cachedManifest: Manifest | null = null
+let manifestFetchPromise: Promise<Manifest> | null = null
 
+/**
+ * Fetches manifest.json from S3/CDN
+ * Uses caching and request deduplication to prevent multiple simultaneous requests
+ */
 export async function fetchManifest(): Promise<Manifest> {
+  // Return cached manifest if available
   if (cachedManifest) return cachedManifest
   
-  const manifestUrl = import.meta.env.VITE_MANIFEST_URL || '/manifest.json'
-  const response = await fetch(manifestUrl)
-  if (!response.ok) {
-    throw new Error(`Failed to fetch manifest: ${response.statusText}`)
-  }
+  // Return existing fetch promise if already in progress
+  if (manifestFetchPromise) return manifestFetchPromise
   
-  cachedManifest = await response.json()
-  return cachedManifest
+  // Create new fetch promise
+  manifestFetchPromise = (async () => {
+    try {
+      const manifestUrl = import.meta.env.VITE_MANIFEST_URL || '/manifest.json'
+      const response = await fetch(manifestUrl, {
+        cache: 'no-store', // Always fetch fresh manifest
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch manifest: ${response.statusText}`)
+      }
+      
+      const manifest: Manifest = await response.json()
+      
+      // Validate manifest structure
+      if (!manifest.remotes || typeof manifest.remotes !== 'object') {
+        throw new Error('Invalid manifest structure')
+      }
+      
+      cachedManifest = manifest
+      return manifest
+    } catch (error) {
+      manifestFetchPromise = null // Reset on error to allow retry
+      throw error
+    } finally {
+      manifestFetchPromise = null
+    }
+  })()
+  
+  return manifestFetchPromise
 }
 
+/**
+ * Gets remote configuration for a specific remote module
+ */
 export async function loadRemoteConfig(remoteName: string): Promise<RemoteConfig | null> {
   const manifest = await fetchManifest()
   return manifest.remotes[remoteName] || null
 }
 
-// Dynamically register remotes at runtime
-export async function registerRemotes() {
-  if (import.meta.env.DEV) {
-    // In development, remotes are already configured in vite.config.ts
-    return
-  }
-  
+/**
+ * Gets all available remote configurations
+ */
+export async function getAllRemoteConfigs(): Promise<Record<string, RemoteConfig>> {
   const manifest = await fetchManifest()
-  const remotes: Record<string, string> = {}
-  
-  for (const [name, config] of Object.entries(manifest.remotes)) {
-    remotes[name] = config.url
-  }
-  
-  // Register remotes with module federation
-  // This would be called during app initialization
-  return remotes
+  return manifest.remotes
+}
+
+/**
+ * Clears cached manifest (useful for testing or forced refresh)
+ */
+export function clearManifestCache(): void {
+  cachedManifest = null
+  manifestFetchPromise = null
 }
 ```
 
@@ -380,48 +414,181 @@ export const SecureRoute = observer(({
 })
 ```
 
-#### Dynamic Module Loading
+#### Dynamic Module Loading (Vite Module Federation)
 ```typescript
 // portal-repo/src/components/ModuleLoader.tsx
 import { lazy, Suspense } from 'react'
 import { observer } from 'mobx-react-lite'
+import { Navigate } from 'react-router-dom'
 import { useStores } from '../hooks/useStores'
+import { loadRemoteConfig } from '../services/manifestService'
+import { ErrorBoundary } from 'react-error-boundary'
 
-const loadModule = (scope: string, module: string) => {
+/**
+ * Loads a remote module dynamically using Vite Module Federation
+ * Supports both development (hardcoded URLs) and production (manifest-based)
+ */
+const loadRemoteModule = (remoteName: string, module: string) => {
   return lazy(async () => {
-    // @ts-ignore
-    const container = window[scope]
-    await container.init(__webpack_share_scopes__.default)
+    let remoteUrl: string
+
+    if (import.meta.env.DEV) {
+      // Development: Use hardcoded localhost URLs from vite.config.ts
+      const devUrls: Record<string, string> = {
+        tradePlans: 'http://localhost:5001/assets/remoteEntry.js',
+        clientVerification: 'http://localhost:5002/assets/remoteEntry.js',
+        annuitySales: 'http://localhost:5003/assets/remoteEntry.js',
+      }
+      remoteUrl = devUrls[remoteName]
+      
+      if (!remoteUrl) {
+        throw new Error(`Remote module ${remoteName} not configured for development`)
+      }
+    } else {
+      // Production: Fetch remote URL from manifest
+      const config = await loadRemoteConfig(remoteName)
+      if (!config) {
+        throw new Error(`Remote module ${remoteName} not found in manifest`)
+      }
+      remoteUrl = config.url
+    }
+
+    // Load the remote entry script
+    await loadScript(remoteUrl)
+
+    // Get the remote container from window
+    const container = (window as any)[remoteName]
+    if (!container) {
+      throw new Error(`Remote container ${remoteName} not found after loading script`)
+    }
+
+    // Initialize the container with shared scope
+    // Note: @originjs/vite-plugin-federation exposes __federation_shared__
+    const sharedScope = (window as any).__federation_shared__ || {}
+    await container.init(sharedScope)
+
+    // Get the module factory
     const factory = await container.get(module)
+    if (!factory) {
+      throw new Error(`Module ${module} not found in remote ${remoteName}`)
+    }
+
+    // Return the module
     return factory()
   })
 }
 
+/**
+ * Helper function to dynamically load a script
+ */
+function loadScript(url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Check if script already loaded
+    const existingScript = document.querySelector(`script[src="${url}"]`)
+    if (existingScript) {
+      resolve()
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = url
+    script.type = 'text/javascript'
+    script.async = true
+    script.crossOrigin = 'anonymous'
+    
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error(`Failed to load script: ${url}`))
+    
+    document.head.appendChild(script)
+  })
+}
+
+/**
+ * Error fallback component for module loading failures
+ */
+function ModuleErrorFallback({ error, resetErrorBoundary }: any) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[400px] p-6">
+      <div className="bg-danger-50 border border-danger-200 rounded-lg p-6 max-w-md">
+        <h2 className="text-xl font-semibold text-danger-700 mb-2">
+          Failed to Load Module
+        </h2>
+        <p className="text-danger-600 mb-4">
+          {error.message || 'An error occurred while loading the module'}
+        </p>
+        <button
+          onClick={resetErrorBoundary}
+          className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    </div>
+  )
+}
+
 interface ModuleLoaderProps {
-  scope: string
+  remoteName: string
   module: string
   requiredGroups?: string[]
   fallback?: React.ReactNode
+  props?: Record<string, any> // Props to pass to remote module
 }
 
+/**
+ * ModuleLoader component that dynamically loads remote modules
+ * Uses props injection to pass authentication state to remote modules
+ */
 export const ModuleLoader = observer(({ 
-  scope, 
+  remoteName, 
   module, 
   requiredGroups = [],
-  fallback = <div>Loading...</div>
+  fallback = <div className="flex items-center justify-center min-h-[400px]">Loading module...</div>,
+  props = {}
 }: ModuleLoaderProps) => {
   const { authStore } = useStores()
 
-  if (!authStore.hasAnyGroup(requiredGroups)) {
-    return <Navigate to="/unauthorized" />
+  // Check authentication
+  if (authStore.isLoading) {
+    return <div className="flex items-center justify-center min-h-[400px]">Initializing...</div>
   }
 
-  const Component = loadModule(scope, module)
+  if (!authStore.isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  // Check group authorization
+  if (requiredGroups.length > 0 && !authStore.hasAnyGroup(requiredGroups)) {
+    return <Navigate to="/unauthorized" replace />
+  }
+
+  // Load the remote module
+  const RemoteComponent = loadRemoteModule(remoteName, module)
+
+  // Prepare props to inject into remote module
+  // This includes authentication state for the remote to use
+  const injectedProps = {
+    ...props,
+    // Inject authentication state
+    auth: {
+      user: authStore.claims,
+      token: authStore.accessToken,
+      groups: authStore.groups,
+      isAuthenticated: authStore.isAuthenticated,
+      hasGroup: (group: string) => authStore.hasGroup(group),
+      hasAnyGroup: (groups: string[]) => authStore.hasAnyGroup(groups),
+      hasRole: (role: string) => authStore.hasRole(role),
+    },
+    // Inject logout callback
+    onLogout: () => authStore.logout(),
+  }
 
   return (
-    <Suspense fallback={fallback}>
-      <Component />
-    </Suspense>
+    <ErrorBoundary FallbackComponent={ModuleErrorFallback}>
+      <Suspense fallback={fallback}>
+        <RemoteComponent {...injectedProps} />
+      </Suspense>
+    </ErrorBoundary>
   )
 })
 ```
@@ -539,6 +706,81 @@ if (import.meta.env.DEV) {
     <React.StrictMode>
       <App />
     </React.StrictMode>,
+  )
+}
+```
+
+#### Remote App Component (Receives Props from Portal)
+```typescript
+// trade-plans-repo/src/App.tsx
+import React from 'react'
+import { BrowserRouter } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
+import TradeList from './components/TradeList'
+import TradeForm from './components/TradeForm'
+import TradeAnalytics from './components/TradeAnalytics'
+
+/**
+ * Props injected by portal via ModuleLoader
+ * These props include authentication state and callbacks
+ */
+interface AppProps {
+  auth?: {
+    user?: any
+    token?: string | null
+    groups?: string[]
+    isAuthenticated?: boolean
+    hasGroup?: (group: string) => boolean
+    hasAnyGroup?: (groups: string[]) => boolean
+    hasRole?: (role: string) => boolean
+  }
+  onLogout?: () => void
+  [key: string]: any // Allow additional props
+}
+
+/**
+ * Main App component for Trade Plans module
+ * Receives authentication state via props injection from portal
+ */
+export default function App(props: AppProps = {}) {
+  const { auth, onLogout } = props
+
+  // In standalone mode, auth might not be provided
+  // In federated mode, portal provides auth via props
+  const isAuthenticated = auth?.isAuthenticated ?? true
+  const user = auth?.user
+  const token = auth?.token
+  const groups = auth?.groups || []
+
+  // Expose auth to child components via context or props
+  // This allows components to access auth state
+  return (
+    <BrowserRouter>
+      <div className="trade-plans-app">
+        <Routes>
+          <Route 
+            path="/" 
+            element={<TradeList auth={auth} />} 
+          />
+          <Route 
+            path="/create" 
+            element={
+              auth?.hasGroup?.('traders') || auth?.hasGroup?.('admins') 
+                ? <TradeForm auth={auth} />
+                : <div>Unauthorized: Traders or Admins only</div>
+            } 
+          />
+          <Route 
+            path="/analytics" 
+            element={
+              auth?.hasGroup?.('admins')
+                ? <TradeAnalytics auth={auth} />
+                : <div>Unauthorized: Admins only</div>
+            } 
+          />
+        </Routes>
+      </div>
+    </BrowserRouter>
   )
 }
 ```
@@ -774,13 +1016,25 @@ jobs:
           aws s3 sync dist s3://${{ secrets.S3_BUCKET }}/trade-plans/$VERSION/
           # Update current symlink
           aws s3 sync dist s3://${{ secrets.S3_BUCKET }}/trade-plans/current/ --delete
-      - name: Update Manifest
+      - name: Update Manifest (S3/CDN)
         run: |
-          # Update manifest.json with new version
-          # This could be done via API call to manifest service or direct S3 update
-          VERSION=$(node -p "require('./package.json').version")
-          REMOTE_URL="https://cdn.example.com/trade-plans/$VERSION/remoteEntry.js"
-          # Update manifest.json (implementation depends on manifest storage)
+          VERSION=${{ steps.version.outputs.VERSION }}
+          REMOTE_URL="https://cdn.example.com/trade-plans/$VERSION/assets/remoteEntry.js"
+          
+          # Fetch current manifest from S3
+          aws s3 cp s3://${{ secrets.S3_BUCKET }}/manifest.json manifest-current.json || echo '{}' > manifest-current.json
+          
+          # Update manifest with new version using jq
+          jq --arg module "tradePlans" \
+             --arg version "$VERSION" \
+             --arg url "$REMOTE_URL" \
+             '.remotes[$module].version = $version | .remotes[$module].url = $url' \
+             manifest-current.json > manifest-new.json
+          
+          # Upload updated manifest back to S3
+          aws s3 cp manifest-new.json s3://${{ secrets.S3_BUCKET }}/manifest.json \
+            --content-type "application/json" \
+            --cache-control "no-cache, no-store, must-revalidate"
       - name: Invalidate CloudFront
         run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CF_DIST_ID }} --paths "/trade-plans/*" "/manifest.json"
 ```
@@ -811,11 +1065,25 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           aws s3 sync dist s3://${{ secrets.S3_BUCKET }}/client-verification/$VERSION/
           aws s3 sync dist s3://${{ secrets.S3_BUCKET }}/client-verification/current/ --delete
-      - name: Update Manifest
+      - name: Update Manifest (S3/CDN)
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          REMOTE_URL="https://cdn.example.com/client-verification/$VERSION/remoteEntry.js"
-          # Update manifest.json
+          VERSION=${{ steps.version.outputs.VERSION }}
+          REMOTE_URL="https://cdn.example.com/client-verification/$VERSION/assets/remoteEntry.js"
+          
+          # Fetch current manifest from S3
+          aws s3 cp s3://${{ secrets.S3_BUCKET }}/manifest.json manifest-current.json || echo '{}' > manifest-current.json
+          
+          # Update manifest with new version using jq
+          jq --arg module "clientVerification" \
+             --arg version "$VERSION" \
+             --arg url "$REMOTE_URL" \
+             '.remotes[$module].version = $version | .remotes[$module].url = $url' \
+             manifest-current.json > manifest-new.json
+          
+          # Upload updated manifest back to S3
+          aws s3 cp manifest-new.json s3://${{ secrets.S3_BUCKET }}/manifest.json \
+            --content-type "application/json" \
+            --cache-control "no-cache, no-store, must-revalidate"
       - name: Invalidate CloudFront
         run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CF_DIST_ID }} --paths "/client-verification/*" "/manifest.json"
 ```
@@ -846,11 +1114,25 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           aws s3 sync dist s3://${{ secrets.S3_BUCKET }}/annuity-sales/$VERSION/
           aws s3 sync dist s3://${{ secrets.S3_BUCKET }}/annuity-sales/current/ --delete
-      - name: Update Manifest
+      - name: Update Manifest (S3/CDN)
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          REMOTE_URL="https://cdn.example.com/annuity-sales/$VERSION/remoteEntry.js"
-          # Update manifest.json
+          VERSION=${{ steps.version.outputs.VERSION }}
+          REMOTE_URL="https://cdn.example.com/annuity-sales/$VERSION/assets/remoteEntry.js"
+          
+          # Fetch current manifest from S3
+          aws s3 cp s3://${{ secrets.S3_BUCKET }}/manifest.json manifest-current.json || echo '{}' > manifest-current.json
+          
+          # Update manifest with new version using jq
+          jq --arg module "annuitySales" \
+             --arg version "$VERSION" \
+             --arg url "$REMOTE_URL" \
+             '.remotes[$module].version = $version | .remotes[$module].url = $url' \
+             manifest-current.json > manifest-new.json
+          
+          # Upload updated manifest back to S3
+          aws s3 cp manifest-new.json s3://${{ secrets.S3_BUCKET }}/manifest.json \
+            --content-type "application/json" \
+            --cache-control "no-cache, no-store, must-revalidate"
       - name: Invalidate CloudFront
         run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CF_DIST_ID }} --paths "/annuity-sales/*" "/manifest.json"
 ```
