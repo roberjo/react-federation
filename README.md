@@ -4,13 +4,13 @@ A production-ready enterprise portal application using React 18, Vite, MobX, and
 
 ## 🏗️ Architecture
 
-This project uses a **monorepo architecture** for initial development and proof of concept. The monorepo contains:
+This project uses a **pnpm monorepo** for the portal shell and all remotes:
 
-- **Portal** - Main shell application with authentication and module loading
-- **Trade Plans** - Remote module for trade management
-- **Client Verification** - Remote module for client verification (coming soon)
-- **Annuity Sales** - Remote module for annuity sales (coming soon)
-- **Shared** - Shared TypeScript types and utilities
+- **Portal** – Main host application with authentication, layout, and Module Federation integration
+- **Trade Plans** – Remote module for trade strategy management
+- **Client Verification** – Remote module for KYC queue and escalation workflows
+- **Annuity Sales** – Remote module for annuity pipeline tracking
+- **Shared** – Shared TypeScript types and utilities consumed by the host and remotes
 
 ## 🚀 Quick Start
 
@@ -37,8 +37,8 @@ pnpm dev:trade-plans
 
 - Portal: http://localhost:5173
 - Trade Plans: http://localhost:5001
-- Client Verification: http://localhost:5002 (coming soon)
-- Annuity Sales: http://localhost:5003 (coming soon)
+- Client Verification: http://localhost:5002
+- Annuity Sales: http://localhost:5003
 
 ## 🔐 Authentication
 
@@ -56,10 +56,10 @@ When you click "Sign In", a prompt will appear asking for an email address.
 ```
 react-federation/
 ├── packages/
-│   ├── portal/              # Main shell application
-│   ├── trade-plans/         # Trade Plans remote module
-│   ├── client-verification/  # Client Verification remote module (coming soon)
-│   ├── annuity-sales/       # Annuity Sales remote module (coming soon)
+│   ├── portal/              # Host shell application
+│   ├── trade-plans/         # Remote module: trade management
+│   ├── client-verification/ # Remote module: KYC queue
+│   ├── annuity-sales/       # Remote module: annuity pipeline
 │   └── shared/              # Shared types and utilities
 ├── docs/                    # Documentation
 └── package.json             # Root package.json
@@ -67,19 +67,17 @@ react-federation/
 
 ## 🛠️ Development
 
-### Mock Services
+- **Mock Services**  
+  - Mock Okta auth (`packages/portal/src/services/mockOktaService.ts`)  
+  - MSW handlers for data APIs (`packages/portal/src/mocks/handlers.ts`)
 
-- **Okta Auth**: Mocked for development (see `packages/portal/src/services/mockOktaService.ts`)
-- **API Services**: Mocked using MSW (Mock Service Worker) (see `packages/portal/src/mocks/handlers.ts`)
-
-### Testing
-
-- **Unit Tests**: Vitest + React Testing Library
-- **E2E Tests**: Playwright
-- **Test Coverage**: 29 tests passing
-- **Run Tests**: `pnpm test`
-- **Test Coverage**: `pnpm test:coverage`
-- **E2E Tests**: `pnpm test:e2e`
+- **Testing Commands**  
+  - `pnpm test:portal` – Portal unit tests (Vitest + RTL)  
+  - `pnpm --filter trade-plans test` – Trade Plans unit tests  
+  - `pnpm --filter client-verification test` – Client Verification tests  
+  - `pnpm --filter annuity-sales test` – Annuity Sales tests  
+  - `pnpm test:e2e` – Playwright E2E smoke tests  
+  - `pnpm build` – Type-check + production build for host and remotes
 
 See [Testing Guide](./docs/testing-guide.md) for details.
 
@@ -108,33 +106,24 @@ Comprehensive documentation is available in the `docs/` directory:
 
 ### ✅ Completed
 
-- [x] Monorepo structure setup
-- [x] Shared package with types
-- [x] Portal package with authentication
-- [x] Mock Okta service
-- [x] MSW API mocking
-- [x] AuthStore with MobX
-- [x] ModuleLoader component
-- [x] Trade Plans remote module
-- [x] Props injection for auth state
-- [x] Testing infrastructure (Vitest, React Testing Library, Playwright)
-- [x] Unit tests (29 tests passing)
-- [x] E2E test setup
+- [x] pnpm workspace and shared build pipeline
+- [x] Shared types package (auth, trade, verification, annuity)
+- [x] Portal host with authentication, layout Shell, and ModuleLoader
+- [x] Mock Okta + MSW service layer
+- [x] Shadcn/Tailwind design system migration
+- [x] Trade Plans remote (strategy dashboard)
+- [x] Client Verification remote (KYC queue)
+- [x] Annuity Sales remote (pipeline dashboard)
+- [x] Sample CDN manifest and runtime manifest service
+- [x] Unit tests across host and all remotes (35 total)
+- [x] Production build validated for host/remotes
 
-### 🚧 In Progress
+### 📋 Next
 
-- [ ] Client Verification module
-- [ ] Annuity Sales module
-- [ ] Layout components (Sidebar, Header)
-- [ ] Enhanced UI components
-- [ ] Additional test coverage
-
-### 📋 Planned
-
-- [ ] Additional remote modules
-- [ ] Production deployment setup
-- [ ] Testing infrastructure
-- [ ] CI/CD pipelines
+- [ ] Expand client verification flows (document intake, audit trail)
+- [ ] Extend annuity workflows (quote creation, revenue forecast charts)
+- [ ] Add portal E2E coverage for multi-remote navigation
+- [ ] Wire CI/CD to publish manifest and remote bundles
 
 ## 🤝 Contributing
 

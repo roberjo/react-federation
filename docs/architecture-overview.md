@@ -11,37 +11,38 @@ This enterprise portal uses a **micro-frontend architecture** with **Module Fede
    - Annuity Sales
 3. **Shared Types Package** (Optional) - Common TypeScript types shared across modules
 
-## Multi-Repository Architecture
+## Monorepo Architecture
 
-Each module exists in its own separate repository, enabling:
-- **Independent Versioning** - Each module follows semantic versioning independently
-- **Independent Deployment** - Modules can be deployed without affecting others
-- **Team Autonomy** - Different teams can own and maintain different modules
-- **Technology Flexibility** - Future modules can use different tech stacks if needed
+All packages live in a single pnpm workspace. Each package still builds and deploys independently, while local development benefits from shared tooling and instant linking.
 
-## Repository Structure
+## Workspace Structure
 
 ```
-portal-repo/              # Main shell application
-├── Authentication (Okta)
-├── Layout & Navigation
-├── Module Loader
-└── Shared State Management
-
-trade-plans-repo/         # Remote module 1
+packages/
+├── portal/              # Host shell application
+│   ├── Authentication (Okta)
+│   ├── Layout & Navigation
+│   ├── Module Loader
+│   └── Shared State Management
+│
+├── trade-plans/         # Remote module 1
 ├── Trade Management
 ├── Strategy Builder
 └── Analytics
-
-client-verification-repo/ # Remote module 2
+│
+├── client-verification/ # Remote module 2
 ├── Verification Queue
 ├── Document Management
 └── Compliance Checks
-
-annuity-sales-repo/       # Remote module 3
+│
+├── annuity-sales/       # Remote module 3
 ├── Product Catalog
 ├── Quote Calculator
 └── Sales Pipeline
+│
+└── shared/
+    ├── types/
+    └── utils/
 ```
 
 ## Technology Stack
@@ -126,17 +127,7 @@ Each remote module has its own local stores:
 
 ### State Sharing Strategy
 
-**Option 1: Props Injection** (Recommended)
-- Portal passes auth state as props to remote modules
-- Remotes receive user info, tokens, and permissions
-
-**Option 2: Global Window Object**
-- Portal exposes auth state on `window.portalAuth`
-- Remotes access via `window.portalAuth`
-
-**Option 3: Shared Store Package**
-- Create shared MobX store package
-- Both portal and remotes import and use
+The portal injects an `auth` object and callbacks into each remote via props. This keeps remotes framework-agnostic, works in standalone mode, and avoids a hard coupling on global state.
 
 ## Routing Strategy
 

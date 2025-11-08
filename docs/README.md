@@ -152,13 +152,16 @@ This directory contains comprehensive documentation for the Enterprise Portal wi
 
 ## Key Concepts
 
-### Multi-Repository Architecture
+### Monorepo Workspace
 
-Each module (portal, trade-plans, client-verification, annuity-sales) exists in its own repository, enabling:
-- Independent versioning
-- Independent deployment
-- Team autonomy
-- Technology flexibility
+All packages live in a single pnpm workspace:
+- `packages/portal` – host shell
+- `packages/trade-plans` – trade management remote
+- `packages/client-verification` – KYC queue remote
+- `packages/annuity-sales` – annuity pipeline remote
+- `packages/shared` – shared types/utilities
+
+This preserves independent builds while simplifying local development and cross-package refactors.
 
 ### Module Federation
 
@@ -198,11 +201,7 @@ S3/CDN-stored manifest.json for dynamic remote discovery:
 
 ### Critical Issues
 
-⚠️ **IMPORTANT**: Before implementation, review [Gaps and Issues Analysis](./gaps-and-issues-analysis.md) for critical issues that need to be addressed:
-
-1. **Module Federation Implementation Mismatch** - Webpack-specific code needs to be updated for Vite
-2. **Dynamic Remote Loading** - Production remote loading needs proper implementation
-3. **Token Sharing Strategy** - Needs decision on approach
+The latest architecture decisions and implementation details are captured in the ADRs and migration documents listed above. Historical issues tracked in [Gaps and Issues Analysis](./gaps-and-issues-analysis.md) have been resolved as part of the shadcn design system migration and remote integration work.
 
 ### Design Decisions
 
@@ -264,6 +263,6 @@ For questions or issues:
 
 ---
 
-**Last Updated:** 2024
-**Version:** 1.0.0
+**Last Updated:** 2025-11-08  
+**Version:** 1.1.0
 
