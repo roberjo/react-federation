@@ -1,7 +1,6 @@
 /**
  * Mock OktaAuth wrapper that mimics OktaAuth interface
  */
-import { OktaAuth } from '@okta/okta-auth-js'
 import { mockOktaService } from './mockOktaService'
 
 export class MockOktaAuth {
@@ -25,10 +24,10 @@ export class MockOktaAuth {
         }, 60000) // Check every minute
       }
     },
-    renew: async (key: string) => {
+    renew: async (_key: string) => {
       return await mockOktaService.getAccessToken()
     },
-    get: async (key: string) => {
+    get: async (_key: string) => {
       return await mockOktaService.getAccessToken()
     }
   }

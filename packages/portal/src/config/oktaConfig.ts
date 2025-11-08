@@ -29,3 +29,9 @@ export const oktaConfig = {
   }
 }
 
+export const MODULE_ACCESS = {
+  tradePlans: ['trade-planners', 'traders', 'admins'],
+  clientVerification: ['compliance-officers', 'kyc-specialists', 'admins'],
+  annuitySales: ['sales-agents', 'sales-managers', 'admins'],
+} as const
+

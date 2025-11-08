@@ -1,4 +1,3 @@
-import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import type { AppProps } from '@federation/shared/types'
 import TradeList from './components/TradeList'
@@ -12,7 +11,6 @@ export default function App(props: AppProps = {}) {
 
   // In standalone mode, auth might not be provided
   // In federated mode, portal provides auth via props
-  const isAuthenticated = auth?.isAuthenticated ?? true
   const user = auth?.user
   const groups = auth?.groups || []
 

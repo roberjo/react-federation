@@ -111,7 +111,7 @@ function ModuleErrorFallback({ error, resetErrorBoundary }: any) {
 interface ModuleLoaderProps {
   remoteName: string
   module: string
-  requiredGroups?: string[]
+  requiredGroups?: ReadonlyArray<string>
   fallback?: React.ReactNode
   props?: Record<string, any>
 }
@@ -157,7 +157,7 @@ export const ModuleLoader = observer(({
       groups: authStore.groups,
       isAuthenticated: authStore.isAuthenticated,
       hasGroup: (group: string) => authStore.hasGroup(group),
-      hasAnyGroup: (groups: string[]) => authStore.hasAnyGroup(groups),
+      hasAnyGroup: (groups: ReadonlyArray<string>) => authStore.hasAnyGroup(groups),
       hasRole: (role: string) => authStore.hasRole(role),
     },
     // Inject logout callback

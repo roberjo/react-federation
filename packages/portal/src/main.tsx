@@ -7,9 +7,15 @@ import './index.css'
 async function enableMocking() {
   if (import.meta.env.DEV && import.meta.env.VITE_USE_MOCK_API !== 'false') {
     const { worker } = await import('./mocks/browser')
-    await worker.start({
-      onUnhandledRequest: 'bypass',
-    })
+    // Worker is already started in browser.ts, just wait for it
+    if (worker) {
+      await worker.start({
+        onUnhandledRequest: 'bypass',
+        serviceWorker: {
+          url: '/mockServiceWorker.js',
+        },
+      })
+    }
   }
 }
 

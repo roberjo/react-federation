@@ -55,16 +55,34 @@ class AuthStore {
     return this.groups.includes(groupName)
   }
 
-  hasAnyGroup(groupNames: string[]): boolean {
+  hasAnyGroup(groupNames: ReadonlyArray<string>): boolean {
     return groupNames.some(group => this.hasGroup(group))
   }
 
-  hasAllGroups(groupNames: string[]): boolean {
+  hasAllGroups(groupNames: ReadonlyArray<string>): boolean {
     return groupNames.every(group => this.hasGroup(group))
   }
 
   hasRole(role: string): boolean {
     return this.claims?.roles?.includes(role) || false
+  }
+
+  get userName(): string {
+    return this.claims?.name || this.claims?.preferred_username || 'User'
+  }
+
+  get userEmail(): string {
+    return this.claims?.email || ''
+  }
+
+  get userInitials(): string {
+    const name = this.userName
+    if (!name) return 'U'
+    const parts = name.split(' ')
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    }
+    return name.substring(0, 2).toUpperCase()
   }
 
   async login() {

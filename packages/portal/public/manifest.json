@@ -1,0 +1,29 @@
+{
+  "version": "1.0.0",
+  "remotes": {
+    "tradePlans": {
+      "url": "https://cdn.example.com/trade-plans/latest/assets/remoteEntry.js",
+      "version": "1.0.0",
+      "requiredGroups": ["trade-planners", "traders", "admins"],
+      "displayName": "Trade Plans",
+      "icon": "trending-up",
+      "description": "Design, review, and monitor complex trading strategies."
+    },
+    "clientVerification": {
+      "url": "https://cdn.example.com/client-verification/latest/assets/remoteEntry.js",
+      "version": "1.0.0",
+      "requiredGroups": ["compliance-officers", "kyc-specialists", "admins"],
+      "displayName": "Client Verification",
+      "icon": "user-check",
+      "description": "KYC workflow queue with escalation and document checkpoints."
+    },
+    "annuitySales": {
+      "url": "https://cdn.example.com/annuity-sales/latest/assets/remoteEntry.js",
+      "version": "1.0.0",
+      "requiredGroups": ["sales-agents", "sales-managers", "admins"],
+      "displayName": "Annuity Sales",
+      "icon": "dollar-sign",
+      "description": "Forecast annuity premium production and manage sales pipeline."
+    }
+  }
+}

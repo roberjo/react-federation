@@ -111,6 +111,24 @@ This directory contains comprehensive documentation for the Enterprise Portal wi
     - Coverage status
     - Test infrastructure
 
+16. **[Fusion-Site Migration Plan](./migration-plan-fusion-site.md)**
+    - Migration strategy
+    - Step-by-step migration guide
+    - Component migration checklist
+    - Dependencies and setup
+
+17. **[Fusion-Site Comparison](./fusion-site-comparison.md)**
+    - Side-by-side comparison
+    - Design system differences
+    - Component comparison
+    - Migration impact analysis
+
+18. **[Migration Summary](./MIGRATION_SUMMARY.md)**
+    - Quick overview
+    - Key findings
+    - Migration phases
+    - Success criteria
+
 ## Quick Start
 
 ### For Developers

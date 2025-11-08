@@ -2,10 +2,12 @@ import { observer } from 'mobx-react-lite'
 import { Navigate } from 'react-router-dom'
 import { useStores } from '../../contexts/StoreContext'
 
+type SecurityList = ReadonlyArray<string>;
+
 interface SecureRouteProps {
   children: React.ReactNode
-  requiredGroups?: string[]
-  requiredRoles?: string[]
+  requiredGroups?: SecurityList
+  requiredRoles?: SecurityList
   requireAll?: boolean
 }
 
