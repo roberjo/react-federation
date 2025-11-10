@@ -4,7 +4,7 @@
 
 ### ✅ All Tests Passing
 
-**Total Tests**: 29  
+**Total Tests**: 35  
 **Status**: ✅ All Passing
 
 ### Portal Package Tests
@@ -45,24 +45,27 @@
 
 ### Trade Plans Package Tests
 
-**Total**: 5 tests
+- `TradeList` (5 tests) – loading, error handling, and role-based CTAs
 
-#### TradeList Tests (5 tests) ✅
-- ✅ Render loading state initially
-- ✅ Render trades after loading
-- ✅ Display error message on API failure
-- ✅ Show create button for traders
-- ✅ Not show create button for non-traders
+### Client Verification Package Tests
+
+- `VerificationQueue` (3 tests) – KPI cards, queue rendering, escalation control
+
+### Annuity Sales Package Tests
+
+- `SalesPipeline` (3 tests) – weighted pipeline metrics, probability visualization, sales-only actions
 
 ## Test Coverage
 
 ### Files Tested
 
-- ✅ `AuthStore.ts` - Full coverage
-- ✅ `LoginPage.tsx` - Full coverage
-- ✅ `SecureRoute.tsx` - Full coverage
-- ✅ `manifestService.ts` - Full coverage
-- ✅ `TradeList.tsx` - Full coverage
+- ✅ `AuthStore.ts`
+- ✅ `LoginPage.tsx`
+- ✅ `SecureRoute.tsx`
+- ✅ `manifestService.ts`
+- ✅ `TradeList.tsx`
+- ✅ `VerificationQueue.tsx`
+- ✅ `SalesPipeline.tsx`
 
 ### Areas Covered
 
@@ -84,7 +87,9 @@ pnpm test
 ### Specific Package
 ```bash
 pnpm test:portal
-pnpm test:trade-plans
+pnpm --filter trade-plans test
+pnpm --filter client-verification test
+pnpm --filter annuity-sales test
 ```
 
 ### With Coverage
@@ -114,19 +119,19 @@ pnpm test:e2e
 ## Next Steps for Testing
 
 1. **Increase Coverage**
-   - Add tests for ModuleLoader component
-   - Add tests for API client
-   - Add tests for remaining components
+   - Add tests for ModuleLoader, layout shell, and shared UI primitives
+   - Exercise chart/table interactions in remote dashboards
+   - Cover MSW handlers and API clients
 
 2. **E2E Tests**
-   - Complete E2E test suite
-   - Test full user journeys
-   - Test module federation integration
+   - Validate navigation across all remotes and auth redirects
+   - Exercise manifest-driven module loading
+   - Automate smoke tests for remote availability
 
 3. **Integration Tests**
-   - Test module loading flow
-   - Test props injection
-   - Test cross-module communication
+   - Verify props injection contracts between host and remotes
+   - Test logout/onLogout flows from remote components
+   - Add contract tests for shared types/utilities
 
 ## Test Quality
 
@@ -138,6 +143,6 @@ pnpm test:e2e
 
 ---
 
-**Last Updated**: 2024  
+**Last Updated**: 2025-11-08  
 **Status**: ✅ All Tests Passing
 

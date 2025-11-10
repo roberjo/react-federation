@@ -217,11 +217,11 @@ s3://bucket/
 ## Scalability
 
 ### Adding New Modules
-1. Create new repository
-2. Configure Module Federation
-3. Deploy to CDN
-4. Update manifest.json
-5. Portal automatically discovers new module
+1. Scaffold a new package inside `packages/`
+2. Configure Vite Module Federation (`federation({ name, exposes })`)
+3. Add the package to `pnpm-workspace.yaml`
+4. Register its dev URL in `portal/vite.config.ts`
+5. Publish the remote bundle and update `manifest.json`
 
 ### Module Updates
 - Deploy new version

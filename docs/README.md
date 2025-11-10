@@ -128,6 +128,11 @@ This directory contains comprehensive documentation for the Enterprise Portal wi
     - Key findings
     - Migration phases
     - Success criteria
+19. **[AWS & Terraform Cloud Deployment Guide](./aws-terraform-cloud.md)**
+    - AWS hosting architecture
+    - Terraform Cloud workspace strategy
+    - Module structure and CI/CD integration
+    - Operational checklist
 
 ## Quick Start
 

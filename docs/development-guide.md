@@ -9,67 +9,24 @@
 
 ## Repository Setup
 
-### 1. Clone All Repositories
+### 1. Clone the Monorepo
 
 ```bash
-# Clone portal repository
-git clone <portal-repo-url>
-cd portal-repo
-
-# Clone remote module repositories
-git clone <trade-plans-repo-url> ../trade-plans-repo
-git clone <client-verification-repo-url> ../client-verification-repo
-git clone <annuity-sales-repo-url> ../annuity-sales-repo
-
-# Optional: Clone shared types repository
-git clone <shared-types-repo-url> ../shared-types-repo
+git clone <git@github.com:your-org/react-federation.git>
+cd react-federation
 ```
 
-### 2. Install Dependencies
-
-Install dependencies in each repository:
+### 2. Install Dependencies Once
 
 ```bash
-# Portal
-cd portal-repo
-npm install
-
-# Trade Plans
-cd ../trade-plans-repo
-npm install
-
-# Client Verification
-cd ../client-verification-repo
-npm install
-
-# Annuity Sales
-cd ../annuity-sales-repo
-npm install
-
-# Shared Types (if using npm package)
-cd ../shared-types-repo
-npm install
-npm run build
-npm link  # Link locally for development
+pnpm install
 ```
 
-### 3. Link Shared Types (If Using Local Development)
-
-If using shared types as a local package:
-
-```bash
-# In shared-types-repo
-npm link
-
-# In each consuming repository
-npm link @your-org/shared-types
-```
+pnpm will bootstrap every workspace package (`portal`, `trade-plans`, `client-verification`, `annuity-sales`, `shared`) in a single pass.
 
 ## Environment Configuration
 
-### Portal Repository
-
-Create `.env` file in `portal-repo/`:
+### Portal (packages/portal)
 
 ```env
 VITE_OKTA_CLIENT_ID=your_client_id
@@ -79,9 +36,7 @@ VITE_MANIFEST_URL=http://localhost:8080/manifest.json
 VITE_APP_NAME=Financial Services Portal
 ```
 
-### Remote Module Repositories
-
-Create `.env` file in each remote repository:
+### Remote Modules (packages/*)
 
 ```env
 VITE_API_BASE_URL=http://localhost:3000/api
@@ -89,121 +44,38 @@ VITE_API_BASE_URL=http://localhost:3000/api
 
 ## Local Development Setup
 
-### Option 1: Run All Services Manually
+### Run All Packages
 
-#### Terminal 1: Portal
 ```bash
-cd portal-repo
-npm run dev
-# Portal runs on http://localhost:5173
+# From repo root
+pnpm dev
 ```
 
-#### Terminal 2: Trade Plans
+This spawns the portal and all remotes in parallel using the workspace scripts defined in the root `package.json`.
+
+### Run Individual Packages
+
 ```bash
-cd trade-plans-repo
-npm run dev
-# Trade Plans runs on http://localhost:5001
+pnpm dev:portal               # http://localhost:5173
+pnpm dev:trade-plans          # http://localhost:5001
+pnpm dev:client-verification  # http://localhost:5002
+pnpm dev:annuity-sales        # http://localhost:5003
 ```
 
-#### Terminal 3: Client Verification
-```bash
-cd client-verification-repo
-npm run dev
-# Client Verification runs on http://localhost:5002
-```
-
-#### Terminal 4: Annuity Sales
-```bash
-cd annuity-sales-repo
-npm run dev
-# Annuity Sales runs on http://localhost:5003
-```
-
-### Option 2: Use Concurrently (Recommended)
-
-Create a root `package.json` in a parent directory:
-
-```json
-{
-  "name": "portal-workspace",
-  "scripts": {
-    "dev": "concurrently \"npm:dev:*\"",
-    "dev:portal": "cd portal-repo && npm run dev",
-    "dev:trade-plans": "cd trade-plans-repo && npm run dev",
-    "dev:client-verification": "cd client-verification-repo && npm run dev",
-    "dev:annuity-sales": "cd annuity-sales-repo && npm run dev"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.0"
-  }
-}
-```
-
-Then run:
-```bash
-npm install
-npm run dev
-```
-
-### Option 3: Use Docker Compose
-
-Create `docker-compose.yml`:
-
-```yaml
-version: '3.8'
-services:
-  portal:
-    build: ./portal-repo
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./portal-repo:/app
-    environment:
-      - VITE_OKTA_CLIENT_ID=${OKTA_CLIENT_ID}
-      - VITE_OKTA_ISSUER=${OKTA_ISSUER}
-
-  trade-plans:
-    build: ./trade-plans-repo
-    ports:
-      - "5001:5001"
-    volumes:
-      - ./trade-plans-repo:/app
-
-  client-verification:
-    build: ./client-verification-repo
-    ports:
-      - "5002:5002"
-    volumes:
-      - ./client-verification-repo:/app
-
-  annuity-sales:
-    build: ./annuity-sales-repo
-    ports:
-      - "5003:5003"
-    volumes:
-      - ./annuity-sales-repo:/app
-```
+Each remote can run standalone (great for focused development) or alongside the portal for integration testing.
 
 ## Development Workflow
 
 ### 1. Starting Development
 
-1. Start all remote modules first (they need to be running for portal to load them)
-2. Start portal application
-3. Open browser to `http://localhost:5173`
-4. Login with Okta credentials
+1. Start the dev servers (`pnpm dev` or the individual commands above)
+2. Open the portal at `http://localhost:5173`
+3. Sign in with a mock user (`admin@example.com`, `trader@example.com`, etc.)
+4. Navigate between `/trade-plans`, `/client-verification`, and `/annuity-sales`
 
 ### 2. Making Changes
 
-#### Portal Changes
-- Edit files in `portal-repo/src/`
-- Changes hot-reload automatically
-- Test authentication and module loading
-
-#### Remote Module Changes
-- Edit files in respective remote repository
-- Changes hot-reload in standalone mode
-- Changes also hot-reload when loaded in portal (if HMR configured)
+Workspace-aware Vite dev servers handle hot module replacement automatically. Edits in a remote immediately reflect both in standalone mode and when loaded through the host.
 
 ### 3. Testing Module Federation
 
@@ -354,23 +226,13 @@ test('user can login and access modules', async ({ page }) => {
 
 ### Adding a New Remote Module
 
-1. Create new repository
-2. Set up Vite + React + TypeScript
-3. Configure Module Federation:
-   ```typescript
-   federation({
-     name: 'newModule',
-     filename: 'remoteEntry.js',
-     exposes: {
-       './App': './src/App.tsx',
-     },
-     shared: ['react', 'react-dom', 'mobx', 'mobx-react-lite', 'react-router-dom']
-   })
-   ```
-4. Add to portal's vite.config.ts (dev mode)
-5. Add to manifest.json (production)
-6. Add route in portal
-7. Add navigation item in sidebar
+1. Create a new folder under `packages/`
+2. Scaffold with `pnpm create vite` (React + TS template) and install shadcn/Tailwind if needed
+3. Configure Module Federation in the new package's `vite.config.ts`
+4. Add the package name to `pnpm-workspace.yaml`
+5. Register dev URLs in `packages/portal/vite.config.ts`
+6. Publish the remote bundle and update the CDN `manifest.json`
+7. Add routing + navigation in the portal (Layout sidebar, `App.tsx`)
 
 ### Updating Shared Dependencies
 
