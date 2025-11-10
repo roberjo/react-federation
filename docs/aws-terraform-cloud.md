@@ -18,12 +18,12 @@ This guide describes how to provision the hosting platform for the React Federat
 
 ```mermaid
 flowchart LR
-    Devs[Developers] --> CI[CI/CD Pipelines]
-    CI -->|Publish bundles| S3Portal[(S3 Bucket<br/>Portal)]
-    CI -->|Publish remotes| S3Remotes[(S3 Bucket<br/>Remotes)]
-    CI -->|Update manifest| Manifest[(manifest.json)]
-    ParamStore[(SSM Parameter Store<br/>/ Secrets Manager)] --> PortalApp[Portal Runtime]
-    CloudFront[CloudFront Distribution] -->|Serves| Users[End Users]
+    Devs[Developers] --> CI["CI/CD Pipelines"]
+    CI -->|Publish bundles| S3Portal["S3 Bucket\nPortal"]
+    CI -->|Publish remotes| S3Remotes["S3 Bucket\nRemotes"]
+    CI -->|Update manifest| Manifest["manifest.json"]
+    ParamStore["SSM Parameter Store\n/ Secrets Manager"] --> PortalApp["Portal Runtime"]
+    CloudFront["CloudFront Distribution"] -->|Serves| Users["End Users"]
 
     S3Portal --> CloudFront
     S3Remotes --> CloudFront
@@ -65,12 +65,12 @@ Recommended TFC settings:
 
 ```mermaid
 flowchart LR
-    Repo[(Git Repository)]
-    PR[Pull Request]
-    TFCPlan[Terraform Cloud<br/>Plan Workspace]
-    TFCAppr[Plan Approval]
-    TFApply[Terraform Cloud<br/>Apply]
-    AWS[(AWS Account)]
+    Repo["Git Repository"]
+    PR["Pull Request"]
+    TFCPlan["Terraform Cloud\nPlan Workspace"]
+    TFCAppr["Plan Approval"]
+    TFApply["Terraform Cloud\nApply"]
+    AWS["AWS Account"]
 
     Repo --> PR
     PR -->|Merge to main| TFCPlan
@@ -78,13 +78,13 @@ flowchart LR
     TFCAppr -->|Approve| TFApply
     TFApply -->|Provision| AWS
 
-    subgraph Variables & Credentials
-      TFCVars[Terraform Cloud<br/>Variable Sets]
+    subgraph "Variables & Credentials"
+      TFCVars["Terraform Cloud\nVariable Sets"]
     end
 
     TFCVars --> TFCPlan
-    AWS --> Outputs[Terraform Outputs<br/>(bucket names, domains)]
-    Outputs --> CI[CI Pipelines<br/>use outputs for deploy]
+    AWS --> Outputs["Terraform Outputs\n(bucket names, domains)"]
+    Outputs --> CI["CI Pipelines\nuse outputs for deploy"]
 ```
 
 ---
