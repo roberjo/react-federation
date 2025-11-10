@@ -89,6 +89,37 @@ flowchart LR
 
 ---
 
+## 3.1 CloudFront & Route 53 (Multiple S3 Buckets)
+
+When each remote owns a dedicated S3 bucket, configure a single CloudFront distribution with multiple origins and path-based behaviours:
+
+| Path pattern | Origin | Purpose |
+| --- | --- | --- |
+| `/`, `/index.html` | `origin_portal` → portal bucket | Default behaviour serving the portal shell. |
+| `/assets/*` | `origin_portal` | Portal static assets (long-lived cache). |
+| `/manifest.json` | `origin_manifest` (portal bucket or dedicated config bucket) | Behaviour with caching disabled to ensure fresh remote mappings. |
+| `/remotes/trade-plans/*` | `origin_trade_plans` → trade-plans bucket | Serves Trade Plans `remoteEntry.js` and assets. |
+| `/remotes/client-verification/*` | `origin_client_verification` → client-verification bucket | Serves Client Verification bundles. |
+| `/remotes/annuity-sales/*` | `origin_annuity_sales` → annuity-sales bucket | Serves Annuity Sales bundles. |
+
+Key details:
+- Attach **Origin Access Control (OAC)** (or legacy OAI) to every bucket so content is only reachable through CloudFront.
+- Use managed cache policies (e.g. `Managed-CachingOptimized`) for remote bundles while restricting HTTP methods to `GET` and `HEAD`.
+- Optional Lambda@Edge / CloudFront Functions can add security headers or advanced rewrites.
+
+### Route 53 DNS
+
+1. Issue an ACM certificate in `us-east-1` for `portal.example.com` (and optionally `*.portal.example.com`).
+2. Create an alias A/AAAA record pointing to the CloudFront domain:
+   ```
+   portal.example.com.  A (Alias) → dXXXXXXXXXXXXX.cloudfront.net.
+   ```
+3. Manifest entries reference the same host (`https://portal.example.com/remotes/...`), so users see a single domain while CloudFront routes requests to the correct origin.
+
+This design lets each remote publish to its own bucket but keeps a unified URL surface and caching strategy.
+
+---
+
 ## 3. Terraform Module Layout
 
 ```
