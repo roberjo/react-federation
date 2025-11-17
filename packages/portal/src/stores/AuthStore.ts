@@ -2,12 +2,14 @@ import { makeAutoObservable } from 'mobx'
 import { OktaAuth } from '@okta/okta-auth-js'
 import { jwtDecode } from 'jwt-decode'
 import type { JwtClaims } from '@federation/shared/types'
+import { deriveRolesFromGroups } from '../config/oktaConfig'
 
 class AuthStore {
   isAuthenticated = false
   accessToken: string | null = null
   claims: JwtClaims | null = null
   groups: string[] = []
+  roles: string[] = []
   isLoading = true
 
   constructor(private oktaAuth: OktaAuth) {
@@ -35,7 +37,10 @@ class AuthStore {
         this.accessToken = accessToken
         try {
           this.claims = jwtDecode<JwtClaims>(accessToken)
+          // Extract groups from JWT claims
           this.groups = this.claims.groups || []
+          // Derive roles from groups (groups have direct relationship to roles)
+          this.roles = deriveRolesFromGroups(this.groups)
           this.isAuthenticated = true
         } catch (error) {
           console.error('Error decoding token:', error)
@@ -48,6 +53,7 @@ class AuthStore {
       this.accessToken = null
       this.claims = null
       this.groups = []
+      this.roles = []
     }
   }
 
@@ -64,7 +70,15 @@ class AuthStore {
   }
 
   hasRole(role: string): boolean {
-    return this.claims?.roles?.includes(role) || false
+    return this.roles.includes(role)
+  }
+
+  hasAnyRole(roles: ReadonlyArray<string>): boolean {
+    return roles.some(role => this.hasRole(role))
+  }
+
+  hasAllRoles(roles: ReadonlyArray<string>): boolean {
+    return roles.every(role => this.hasRole(role))
   }
 
   get userName(): string {
@@ -100,6 +114,7 @@ class AuthStore {
       this.accessToken = null
       this.claims = null
       this.groups = []
+      this.roles = []
     } catch (error) {
       console.error('Logout error:', error)
     }

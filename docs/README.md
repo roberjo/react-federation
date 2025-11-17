@@ -7,6 +7,7 @@ Welcome to the Enterprise Portal with Micro-Frontend Architecture documentation.
 ### 🚀 Getting Started
 
 - **[Quick Start Guide](./getting-started.md)** - Get up and running in 5 minutes
+- **[Local Development Guide](./local-development-guide.md)** - Run locally without Okta setup
 - **[Setup Instructions](./setup-instructions.md)** - Detailed setup guide
 - **[Development Guide](./development-guide.md)** - Complete development workflow
 
@@ -19,6 +20,7 @@ Welcome to the Enterprise Portal with Micro-Frontend Architecture documentation.
 ### 💻 Development
 
 - **[Development Guide](./development-guide.md)** - Local development workflow
+- **[State Management Guide](./state-management-guide.md)** - State management across microfrontends
 - **[Testing Guide](./testing-guide.md)** - Testing strategies and examples
 - **[Mocking Guide](./mocking-guide.md)** - Mock services for development
 - **[API Integration Guide](./api-integration-guide.md)** - API client patterns
@@ -31,11 +33,13 @@ Welcome to the Enterprise Portal with Micro-Frontend Architecture documentation.
 ### 🔐 Security
 
 - **[Security & Authentication Guide](./security-authentication-guide.md)** - Okta setup and security
+- **[RBAC with JWT Roles Guide](./rbac-jwt-roles-guide.md)** - Role-based access control using JWT claims
 - **[Security Best Practices](./security-best-practices.md)** - Security guidelines
 
 ### 🚢 Deployment
 
 - **[Deployment Guide](./deployment-guide.md)** - Production deployment
+- **[Independent Deployment Guide](./independent-deployment-guide.md)** - Deploy packages separately
 - **[AWS & Terraform Guide](./aws-terraform-cloud.md)** - Infrastructure as code
 - **[CI/CD Guide](./cicd-guide.md)** - Continuous integration and deployment
 

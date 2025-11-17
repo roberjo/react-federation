@@ -29,7 +29,7 @@ const Dashboard = observer(() => {
       icon: TrendingUp,
       path: '/trade-plans',
       color: 'primary',
-      requiredGroups: MODULE_ACCESS.tradePlans,
+      requiredRoles: MODULE_ACCESS.tradePlans, // RBAC based on JWT roles
     },
     {
       name: 'Client Verification',
@@ -37,7 +37,7 @@ const Dashboard = observer(() => {
       icon: UserCheck,
       path: '/client-verification',
       color: 'success',
-      requiredGroups: MODULE_ACCESS.clientVerification,
+      requiredRoles: MODULE_ACCESS.clientVerification, // RBAC based on JWT roles
     },
     {
       name: 'Annuity Sales',
@@ -45,12 +45,14 @@ const Dashboard = observer(() => {
       icon: DollarSign,
       path: '/annuity-sales',
       color: 'warning',
-      requiredGroups: MODULE_ACCESS.annuitySales,
+      requiredRoles: MODULE_ACCESS.annuitySales, // RBAC based on JWT roles
     },
   ];
 
+  // Filter modules based on RBAC roles from JWT claims
+  // Only show modules the user has required roles for
   const accessibleModules = modules.filter(module =>
-    authStore.hasAnyGroup(module.requiredGroups)
+    authStore.hasAnyRole(module.requiredRoles)
   );
 
   return (

@@ -9,7 +9,8 @@ interface NavItem {
   name: string;
   path: string;
   icon: React.ElementType;
-  requiredGroups: ReadonlyArray<string>;
+  requiredGroups?: ReadonlyArray<string>; // Legacy group-based access
+  requiredRoles?: ReadonlyArray<string>; // Primary RBAC based on JWT roles
 }
 
 const navItems: NavItem[] = [
@@ -17,25 +18,25 @@ const navItems: NavItem[] = [
     name: 'Dashboard',
     path: '/',
     icon: LayoutDashboard,
-    requiredGroups: [],
+    // No role requirement - accessible to all authenticated users
   },
   {
     name: 'Trade Plans',
     path: '/trade-plans',
     icon: TrendingUp,
-    requiredGroups: MODULE_ACCESS.tradePlans,
+    requiredRoles: MODULE_ACCESS.tradePlans, // RBAC based on JWT roles
   },
   {
     name: 'Client Verification',
     path: '/client-verification',
     icon: UserCheck,
-    requiredGroups: MODULE_ACCESS.clientVerification,
+    requiredRoles: MODULE_ACCESS.clientVerification, // RBAC based on JWT roles
   },
   {
     name: 'Annuity Sales',
     path: '/annuity-sales',
     icon: DollarSign,
-    requiredGroups: MODULE_ACCESS.annuitySales,
+    requiredRoles: MODULE_ACCESS.annuitySales, // RBAC based on JWT roles
   },
 ];
 
@@ -44,9 +45,16 @@ export const Sidebar = observer(() => {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
-  const visibleNavItems = navItems.filter(item => 
-    item.requiredGroups.length === 0 || authStore.hasAnyGroup(item.requiredGroups)
-  );
+  // Filter nav items based on RBAC roles from JWT claims
+  // Only show modules the user has required roles for
+  const visibleNavItems = navItems.filter(item => {
+    // If no role requirements, show to all authenticated users
+    if (!item.requiredRoles || item.requiredRoles.length === 0) {
+      return true
+    }
+    // Check if user has any of the required roles from JWT claims
+    return authStore.hasAnyRole(item.requiredRoles)
+  });
 
   return (
     <aside

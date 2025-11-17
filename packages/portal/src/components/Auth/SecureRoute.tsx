@@ -31,20 +31,26 @@ export const SecureRoute = observer(({
     return <Navigate to="/login" replace />
   }
 
-  const hasGroupAccess = requiredGroups.length === 0 || 
-    (requireAll 
+  // Primary RBAC: Check roles from JWT claims first
+  if (requiredRoles.length > 0) {
+    const hasRoleAccess = requireAll
+      ? requiredRoles.every(r => authStore.hasRole(r))
+      : authStore.hasAnyRole(requiredRoles)
+    
+    if (!hasRoleAccess) {
+      return <Navigate to="/unauthorized" replace />
+    }
+  }
+
+  // Fallback: Check groups if no roles specified (legacy support)
+  if (requiredGroups.length > 0 && requiredRoles.length === 0) {
+    const hasGroupAccess = requireAll
       ? requiredGroups.every(g => authStore.hasGroup(g))
       : authStore.hasAnyGroup(requiredGroups)
-    )
-
-  const hasRoleAccess = requiredRoles.length === 0 ||
-    (requireAll
-      ? requiredRoles.every(r => authStore.hasRole(r))
-      : requiredRoles.some(r => authStore.hasRole(r))
-    )
-
-  if (!hasGroupAccess || !hasRoleAccess) {
-    return <Navigate to="/unauthorized" replace />
+    
+    if (!hasGroupAccess) {
+      return <Navigate to="/unauthorized" replace />
+    }
   }
 
   return <>{children}</>

@@ -38,11 +38,11 @@ const AppRoutes = observer(() => {
         <Route
           path="/trade-plans/*"
           element={
-            <SecureRoute requiredGroups={MODULE_ACCESS.tradePlans}>
+            <SecureRoute requiredRoles={MODULE_ACCESS.tradePlans}>
               <ModuleLoader
                 remoteName="tradePlans"
                 module="./App"
-                requiredGroups={MODULE_ACCESS.tradePlans}
+                requiredRoles={MODULE_ACCESS.tradePlans}
               />
             </SecureRoute>
           }
@@ -51,11 +51,11 @@ const AppRoutes = observer(() => {
         <Route
           path="/client-verification/*"
           element={
-            <SecureRoute requiredGroups={MODULE_ACCESS.clientVerification}>
+            <SecureRoute requiredRoles={MODULE_ACCESS.clientVerification}>
               <ModuleLoader
                 remoteName="clientVerification"
                 module="./App"
-                requiredGroups={MODULE_ACCESS.clientVerification}
+                requiredRoles={MODULE_ACCESS.clientVerification}
               />
             </SecureRoute>
           }
@@ -64,11 +64,11 @@ const AppRoutes = observer(() => {
         <Route
           path="/annuity-sales/*"
           element={
-            <SecureRoute requiredGroups={MODULE_ACCESS.annuitySales}>
+            <SecureRoute requiredRoles={MODULE_ACCESS.annuitySales}>
               <ModuleLoader
                 remoteName="annuitySales"
                 module="./App"
-                requiredGroups={MODULE_ACCESS.annuitySales}
+                requiredRoles={MODULE_ACCESS.annuitySales}
               />
             </SecureRoute>
           }

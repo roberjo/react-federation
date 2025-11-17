@@ -48,10 +48,11 @@ export class MockOktaAuth {
     // Show mock login dialog
     const email = prompt(
       'Enter email:\n' +
-      '- trader@example.com (Trade Plans)\n' +
-      '- compliance@example.com (Client Verification)\n' +
-      '- sales@example.com (Annuity Sales)\n' +
-      '- admin@example.com (All modules)'
+      '- trader@example.com (Trade Plans - trader role)\n' +
+      '- compliance@example.com (Client Verification - compliance-officer role)\n' +
+      '- sales@example.com (Annuity Sales - sales-agent role)\n' +
+      '- admin@example.com (All modules - admin role)\n' +
+      '- multi-role@example.com (Trade Plans + Client Verification)'
     )
     await mockOktaService.signInWithRedirect(email || undefined)
   }

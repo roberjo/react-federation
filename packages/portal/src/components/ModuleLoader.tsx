@@ -112,6 +112,7 @@ interface ModuleLoaderProps {
   remoteName: string
   module: string
   requiredGroups?: ReadonlyArray<string>
+  requiredRoles?: ReadonlyArray<string>
   fallback?: React.ReactNode
   props?: Record<string, any>
 }
@@ -124,6 +125,7 @@ export const ModuleLoader = observer(({
   remoteName, 
   module, 
   requiredGroups = [],
+  requiredRoles = [],
   fallback = <div className="flex items-center justify-center min-h-[400px]">Loading module...</div>,
   props = {}
 }: ModuleLoaderProps) => {
@@ -138,8 +140,13 @@ export const ModuleLoader = observer(({
     return <Navigate to="/login" replace />
   }
 
-  // Check group authorization
-  if (requiredGroups.length > 0 && !authStore.hasAnyGroup(requiredGroups)) {
+  // Check role-based authorization (primary RBAC mechanism)
+  if (requiredRoles.length > 0 && !authStore.hasAnyRole(requiredRoles)) {
+    return <Navigate to="/unauthorized" replace />
+  }
+
+  // Check group authorization (fallback/legacy support)
+  if (requiredGroups.length > 0 && requiredRoles.length === 0 && !authStore.hasAnyGroup(requiredGroups)) {
     return <Navigate to="/unauthorized" replace />
   }
 
@@ -147,18 +154,23 @@ export const ModuleLoader = observer(({
   const RemoteComponent = loadRemoteModule(remoteName, module)
 
   // Prepare props to inject into remote module
-  // This includes authentication state for the remote to use
+  // This includes authentication state and RBAC roles derived from groups
   const injectedProps = {
     ...props,
-    // Inject authentication state
+    // Inject authentication state with JWT claims (groups) and derived roles
     auth: {
-      user: authStore.claims,
+      user: authStore.claims, // Full JWT claims (includes groups)
       token: authStore.accessToken,
-      groups: authStore.groups,
+      groups: authStore.groups, // Groups from JWT claims
+      roles: authStore.roles, // Roles derived from groups (primary RBAC)
       isAuthenticated: authStore.isAuthenticated,
+      // Group-based authorization helpers
       hasGroup: (group: string) => authStore.hasGroup(group),
       hasAnyGroup: (groups: ReadonlyArray<string>) => authStore.hasAnyGroup(groups),
+      // Role-based authorization helpers (roles derived from groups)
       hasRole: (role: string) => authStore.hasRole(role),
+      hasAnyRole: (roles: ReadonlyArray<string>) => authStore.hasAnyRole(roles),
+      hasAllRoles: (roles: ReadonlyArray<string>) => authStore.hasAllRoles(roles),
     },
     // Inject logout callback
     onLogout: () => authStore.logout(),

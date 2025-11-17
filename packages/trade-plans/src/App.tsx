@@ -10,9 +10,10 @@ export default function App(props: AppProps = {}) {
   const { auth } = props
 
   // In standalone mode, auth might not be provided
-  // In federated mode, portal provides auth via props
+  // In federated mode, portal provides auth via props with JWT claims including roles
   const user = auth?.user
-  const groups = auth?.groups || []
+  const roles = auth?.roles || [] // Roles from JWT claims (primary RBAC)
+  const groups = auth?.groups || [] // Legacy support
 
   return (
     <BrowserRouter>
@@ -24,9 +25,9 @@ export default function App(props: AppProps = {}) {
               Welcome, {user.name} ({user.email})
             </p>
           )}
-          {groups.length > 0 && (
+          {roles.length > 0 && (
             <p className="text-sm text-dark-500 mt-1">
-              Groups: {groups.join(', ')}
+              Roles: {roles.join(', ')} {/* Roles from JWT claims */}
             </p>
           )}
         </div>
@@ -39,26 +40,28 @@ export default function App(props: AppProps = {}) {
           <Route 
             path="/create" 
             element={
-              auth?.hasGroup?.('traders') || auth?.hasGroup?.('admins') 
+              // Use roles from JWT claims for RBAC authorization
+              auth?.hasRole?.('trader') || auth?.hasRole?.('admin')
                 ? <div className="p-6 bg-white rounded-lg shadow-card">
                     <h2 className="text-xl font-semibold mb-4">Create Trade</h2>
                     <p className="text-dark-600">Trade creation form coming soon...</p>
                   </div>
                 : <div className="p-6 bg-danger-50 border border-danger-200 rounded-lg">
-                    <p className="text-danger-700">Unauthorized: Traders or Admins only</p>
+                    <p className="text-danger-700">Unauthorized: Trader or Admin role required</p>
                   </div>
             } 
           />
           <Route 
             path="/analytics" 
             element={
-              auth?.hasGroup?.('admins')
+              // Use roles from JWT claims for RBAC authorization
+              auth?.hasRole?.('admin')
                 ? <div className="p-6 bg-white rounded-lg shadow-card">
                     <h2 className="text-xl font-semibold mb-4">Trade Analytics</h2>
                     <p className="text-dark-600">Analytics dashboard coming soon...</p>
                   </div>
                 : <div className="p-6 bg-danger-50 border border-danger-200 rounded-lg">
-                    <p className="text-danger-700">Unauthorized: Admins only</p>
+                    <p className="text-danger-700">Unauthorized: Admin role required</p>
                   </div>
             } 
           />

@@ -42,14 +42,19 @@ pnpm dev:trade-plans
 
 ## 🔐 Authentication
 
-The portal uses **mock Okta authentication** for development. You can login with these test accounts:
+The portal uses **mock Okta authentication** for development (enabled automatically). No Okta setup required!
 
-- `trader@example.com` - Access to Trade Plans
-- `compliance@example.com` - Access to Client Verification
-- `sales@example.com` - Access to Annuity Sales
-- `admin@example.com` - Access to all modules
+### Quick Login
 
-When you click "Sign In", a prompt will appear asking for an email address.
+When you click "Continue to Demo", a prompt will appear. Use these test accounts:
+
+- `trader@example.com` - Trade Plans module (trader role)
+- `compliance@example.com` - Client Verification module (compliance-officer role)
+- `sales@example.com` - Annuity Sales module (sales-agent role)
+- `admin@example.com` - All modules (admin role)
+- `multi-role@example.com` - Trade Plans + Client Verification
+
+**Note:** Roles are derived from groups in JWT claims. See [Local Development Guide](./docs/local-development-guide.md) for details.
 
 ## 📦 Project Structure
 

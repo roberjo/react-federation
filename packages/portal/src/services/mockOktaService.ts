@@ -7,8 +7,7 @@ export interface MockUser {
   id: string
   email: string
   name: string
-  groups: string[]
-  roles: string[]
+  groups: string[] // Groups from JWT claims - roles will be derived from these
 }
 
 export class MockOktaService {
@@ -17,29 +16,31 @@ export class MockOktaService {
       id: '1',
       email: 'trader@example.com',
       name: 'John Trader',
-      groups: ['trade-planners', 'traders'],
-      roles: ['user']
+      groups: ['trade-planners'], // Maps to ['trader'] role
     },
     {
       id: '2',
       email: 'compliance@example.com',
       name: 'Jane Compliance',
-      groups: ['compliance-officers', 'kyc-specialists'],
-      roles: ['user']
+      groups: ['compliance-officers'], // Maps to ['compliance-officer'] role
     },
     {
       id: '3',
       email: 'sales@example.com',
       name: 'Bob Sales',
-      groups: ['sales-agents', 'sales-managers'],
-      roles: ['user']
+      groups: ['sales-agents'], // Maps to ['sales-agent'] role
     },
     {
       id: '4',
       email: 'admin@example.com',
       name: 'Admin User',
-      groups: ['admins'],
-      roles: ['admin', 'user']
+      groups: ['admins'], // Maps to ['admin'] role - grants access to all modules
+    },
+    {
+      id: '5',
+      email: 'multi-role@example.com',
+      name: 'Multi Role User',
+      groups: ['trade-planners', 'compliance-officers'], // Maps to ['trader', 'compliance-officer'] roles
     }
   ]
 
@@ -103,13 +104,13 @@ export class MockOktaService {
     }
 
     // Generate mock JWT token
+    // Note: JWT only contains groups, not roles. Roles are derived from groups.
     const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
     const payload = btoa(JSON.stringify({
       sub: this.currentUser.id,
       email: this.currentUser.email,
       name: this.currentUser.name,
-      groups: this.currentUser.groups,
-      roles: this.currentUser.roles,
+      groups: this.currentUser.groups, // Groups only - roles will be derived from these
       exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour expiry
       iat: Math.floor(Date.now() / 1000)
     }))
