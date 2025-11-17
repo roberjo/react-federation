@@ -4,7 +4,7 @@
   "private": true,
   "description": "Enterprise Portal with Micro-Frontend Architecture - Monorepo",
   "scripts": {
-    "dev": "pnpm --parallel --filter './packages/*' dev",
+    "dev": "pnpm --parallel --filter portal --filter trade-plans --filter client-verification --filter annuity-sales dev",
     "dev:portal": "pnpm --filter portal dev",
     "dev:trade-plans": "pnpm --filter trade-plans dev",
     "dev:client-verification": "pnpm --filter client-verification dev",

@@ -35,6 +35,11 @@ export default defineConfig({
     port: 5001,
     cors: true,
     strictPort: true
+  },
+  preview: {
+    port: 5001,
+    cors: true,
+    strictPort: true
   }
 })
 

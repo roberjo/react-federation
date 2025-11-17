@@ -12,9 +12,9 @@ export default defineConfig({
       name: 'portal',
       remotes: isDev
         ? {
-            tradePlans: 'http://localhost:5001/assets/remoteEntry.js',
-            clientVerification: 'http://localhost:5002/assets/remoteEntry.js',
-            annuitySales: 'http://localhost:5003/assets/remoteEntry.js',
+            tradePlans: 'http://localhost:5001/remoteEntry.js',
+            clientVerification: 'http://localhost:5002/remoteEntry.js',
+            annuitySales: 'http://localhost:5003/remoteEntry.js',
           }
         : {},
       shared: {

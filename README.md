@@ -25,20 +25,29 @@ This project uses a **pnpm monorepo** for the portal shell and all remotes:
 # Install dependencies
 pnpm install
 
+# Build remote modules (required before running dev servers)
+pnpm --filter trade-plans build
+pnpm --filter client-verification build
+pnpm --filter annuity-sales build
+
 # Run all development servers
 pnpm dev
 
 # Or run specific packages
-pnpm dev:portal
-pnpm dev:trade-plans
+pnpm dev:portal              # Portal: vite dev
+pnpm dev:trade-plans         # Trade Plans: vite preview (serves built dist)
+pnpm dev:client-verification # Client Verification: vite preview
+pnpm dev:annuity-sales       # Annuity Sales: vite preview
 ```
+
+**Note**: Remote modules must be built before they can be loaded. They use `vite preview` to serve their built `dist` folders where `remoteEntry.js` is generated.
 
 ### Development URLs
 
-- Portal: http://localhost:5173
-- Trade Plans: http://localhost:5001
-- Client Verification: http://localhost:5002
-- Annuity Sales: http://localhost:5003
+- Portal: http://localhost:5173 (vite dev)
+- Trade Plans: http://localhost:5001 (vite preview - serves built dist)
+- Client Verification: http://localhost:5002 (vite preview)
+- Annuity Sales: http://localhost:5003 (vite preview)
 
 ## 🔐 Authentication
 

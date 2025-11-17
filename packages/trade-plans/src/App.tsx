@@ -13,7 +13,6 @@ export default function App(props: AppProps = {}) {
   // In federated mode, portal provides auth via props with JWT claims including roles
   const user = auth?.user
   const roles = auth?.roles || [] // Roles from JWT claims (primary RBAC)
-  const groups = auth?.groups || [] // Legacy support
 
   return (
     <BrowserRouter>

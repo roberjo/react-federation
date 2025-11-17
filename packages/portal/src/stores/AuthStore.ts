@@ -1,4 +1,4 @@
-import { makeAutoObservable } from 'mobx'
+import { makeAutoObservable, runInAction } from 'mobx'
 import { OktaAuth } from '@okta/okta-auth-js'
 import { jwtDecode } from 'jwt-decode'
 import type { JwtClaims } from '@federation/shared/types'
@@ -16,8 +16,10 @@ class AuthStore {
     makeAutoObservable(this)
   }
 
-  async initialize() {
-    this.isLoading = true
+  initialize = async () => {
+    runInAction(() => {
+      this.isLoading = true
+    })
     try {
       const isAuthenticated = await this.oktaAuth.isAuthenticated()
       if (isAuthenticated) {
@@ -26,34 +28,48 @@ class AuthStore {
     } catch (error) {
       console.error('Auth initialization error:', error)
     } finally {
-      this.isLoading = false
+      runInAction(() => {
+        this.isLoading = false
+      })
     }
   }
 
-  async loadUserData() {
+  loadUserData = async () => {
     try {
       const accessToken = await this.oktaAuth.getAccessToken()
       if (accessToken) {
-        this.accessToken = accessToken
+        runInAction(() => {
+          this.accessToken = accessToken
+        })
         try {
-          this.claims = jwtDecode<JwtClaims>(accessToken)
+          const claims = jwtDecode<JwtClaims>(accessToken)
           // Extract groups from JWT claims
-          this.groups = this.claims.groups || []
+          const groups = claims.groups || []
           // Derive roles from groups (groups have direct relationship to roles)
-          this.roles = deriveRolesFromGroups(this.groups)
-          this.isAuthenticated = true
+          const roles = deriveRolesFromGroups(groups)
+          
+          runInAction(() => {
+            this.claims = claims
+            this.groups = groups
+            this.roles = roles
+            this.isAuthenticated = true
+          })
         } catch (error) {
           console.error('Error decoding token:', error)
-          this.isAuthenticated = false
+          runInAction(() => {
+            this.isAuthenticated = false
+          })
         }
       }
     } catch (error) {
       console.error('Error loading user data:', error)
-      this.isAuthenticated = false
-      this.accessToken = null
-      this.claims = null
-      this.groups = []
-      this.roles = []
+      runInAction(() => {
+        this.isAuthenticated = false
+        this.accessToken = null
+        this.claims = null
+        this.groups = []
+        this.roles = []
+      })
     }
   }
 
@@ -99,7 +115,7 @@ class AuthStore {
     return name.substring(0, 2).toUpperCase()
   }
 
-  async login() {
+  login = async () => {
     try {
       await this.oktaAuth.signInWithRedirect()
     } catch (error) {
@@ -107,14 +123,16 @@ class AuthStore {
     }
   }
 
-  async logout() {
+  logout = async () => {
     try {
       await this.oktaAuth.signOut()
-      this.isAuthenticated = false
-      this.accessToken = null
-      this.claims = null
-      this.groups = []
-      this.roles = []
+      runInAction(() => {
+        this.isAuthenticated = false
+        this.accessToken = null
+        this.claims = null
+        this.groups = []
+        this.roles = []
+      })
     } catch (error) {
       console.error('Logout error:', error)
     }

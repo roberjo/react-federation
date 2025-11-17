@@ -44,6 +44,22 @@ VITE_API_BASE_URL=http://localhost:3000/api
 
 ## Local Development Setup
 
+### Build Remote Modules (First Time)
+
+**Important**: Remote modules must be built before they can be loaded by the portal:
+
+```bash
+# Build all remotes
+pnpm --filter trade-plans build
+pnpm --filter client-verification build
+pnpm --filter annuity-sales build
+
+# Or build all at once
+pnpm --recursive --filter "./packages/*" build
+```
+
+**Why?** Remote modules use `vite preview` to serve their built `dist` folders (where `remoteEntry.js` is generated). `vite dev` doesn't serve the `dist` folder.
+
 ### Run All Packages
 
 ```bash
@@ -51,15 +67,23 @@ VITE_API_BASE_URL=http://localhost:3000/api
 pnpm dev
 ```
 
-This spawns the portal and all remotes in parallel using the workspace scripts defined in the root `package.json`.
+This spawns the portal and all remotes in parallel:
+- **Portal**: Runs via `vite dev` (http://localhost:5173)
+- **Remotes**: Run via `vite preview` (serves built `dist` folders)
 
 ### Run Individual Packages
 
 ```bash
-pnpm dev:portal               # http://localhost:5173
-pnpm dev:trade-plans          # http://localhost:5001
-pnpm dev:client-verification  # http://localhost:5002
-pnpm dev:annuity-sales        # http://localhost:5003
+pnpm dev:portal               # http://localhost:5173 (vite dev)
+pnpm dev:trade-plans          # http://localhost:5001 (vite preview)
+pnpm dev:client-verification  # http://localhost:5002 (vite preview)
+pnpm dev:annuity-sales        # http://localhost:5003 (vite preview)
+```
+
+**Note**: After making changes to remote modules, rebuild them:
+```bash
+pnpm --filter <remote-name> build
+# The preview server will automatically serve the updated build
 ```
 
 Each remote can run standalone (great for focused development) or alongside the portal for integration testing.
@@ -75,7 +99,14 @@ Each remote can run standalone (great for focused development) or alongside the 
 
 ### 2. Making Changes
 
-Workspace-aware Vite dev servers handle hot module replacement automatically. Edits in a remote immediately reflect both in standalone mode and when loaded through the host.
+**Portal Changes**: Hot module replacement works automatically - changes reflect immediately.
+
+**Remote Changes**: 
+- After editing a remote module, rebuild it: `pnpm --filter <remote-name> build`
+- The `vite preview` server will automatically serve the updated build
+- Refresh the portal to see changes
+
+**Note**: Remote modules use `vite preview` (not `vite dev`) because they need to serve the built `dist` folder where `remoteEntry.js` is located.
 
 ### 3. Testing Module Federation
 

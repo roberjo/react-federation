@@ -1,4 +1,6 @@
 import { lazy, Suspense } from 'react'
+import React from 'react'
+import ReactDOM from 'react-dom'
 import { observer } from 'mobx-react-lite'
 import { Navigate } from 'react-router-dom'
 import { ErrorBoundary } from 'react-error-boundary'
@@ -6,56 +8,151 @@ import { useStores } from '../contexts/StoreContext'
 import { loadRemoteConfig } from '../services/manifestService'
 
 /**
+ * Initialize the federation shared scope with React and ReactDOM
+ * This ensures remote modules can access the host's React instance
+ */
+function initializeSharedScope() {
+  if (!(window as any).__federation_shared__) {
+    (window as any).__federation_shared__ = {}
+  }
+  
+  const sharedScope = (window as any).__federation_shared__
+  
+  // Initialize default scope
+  if (!sharedScope.default) {
+    sharedScope.default = {}
+  }
+  
+  // Expose React in shared scope
+  // Remote modules will use this React instance instead of bundling their own
+  // The federation plugin calls: await (await versionValue.get())()
+  // So get() must return a promise that resolves to a function that returns the module
+  if (!sharedScope.default.react) {
+    sharedScope.default.react = {
+      '18.2.0': {
+        get: () => Promise.resolve(() => Promise.resolve(React)),
+        loaded: true,
+        from: 'portal'
+      }
+    }
+  }
+  
+  // Expose ReactDOM in shared scope
+  if (!sharedScope.default['react-dom']) {
+    sharedScope.default['react-dom'] = {
+      '18.2.0': {
+        get: () => Promise.resolve(() => Promise.resolve(ReactDOM)),
+        loaded: true,
+        from: 'portal'
+      }
+    }
+  }
+  
+  return sharedScope
+}
+
+/**
  * Loads a remote module dynamically using Vite Module Federation
- * Supports both development (hardcoded URLs) and production (manifest-based)
+ * Supports both development (Vite handles module resolution) and production (manifest-based)
  */
 const loadRemoteModule = (remoteName: string, module: string) => {
   return lazy(async () => {
-    let remoteUrl: string
-
     if (import.meta.env.DEV) {
-      // Development: Use hardcoded localhost URLs from vite.config.ts
+      // Development: Load remoteEntry.js from built dist folders
+      // Note: Remotes must be built first (pnpm --filter <remote> build)
+      // The remoteEntry.js files are in dist/assets/remoteEntry.js
       const devUrls: Record<string, string> = {
         tradePlans: 'http://localhost:5001/assets/remoteEntry.js',
         clientVerification: 'http://localhost:5002/assets/remoteEntry.js',
         annuitySales: 'http://localhost:5003/assets/remoteEntry.js',
       }
-      remoteUrl = devUrls[remoteName]
       
+      const remoteUrl = devUrls[remoteName]
       if (!remoteUrl) {
         throw new Error(`Remote module ${remoteName} not configured for development`)
       }
+
+      // Initialize shared scope with React/ReactDOM BEFORE loading remote
+      // This ensures remote modules can access the host's React instance
+      const sharedScope = initializeSharedScope()
+      
+      // Load remoteEntry.js as an ES module
+      // @originjs/vite-plugin-federation exports get() and init() functions directly
+      const remoteModule = await import(/* @vite-ignore */ remoteUrl)
+      
+      if (!remoteModule || typeof remoteModule.get !== 'function') {
+        throw new Error(`Remote module ${remoteName} does not export get() function. Make sure the remote is built (pnpm --filter ${remoteName} build)`)
+      }
+
+      // Initialize the remote module with the shared scope
+      // This allows the remote to access shared dependencies like React
+      if (typeof remoteModule.init === 'function') {
+        await remoteModule.init(sharedScope)
+      }
+
+      // Get the module factory using the exported get() function
+      const modulePath = module.startsWith('./') ? module : `./${module}`
+      const factory = await remoteModule.get(modulePath)
+      
+      if (!factory) {
+        // Try with ./ prefix if not already present
+        const altPath = module.startsWith('./') ? module.slice(2) : `./${module}`
+        const altFactory = await remoteModule.get(altPath)
+        if (altFactory) {
+          const component = altFactory()
+          // lazy() expects a promise that resolves to { default: Component }
+          return { default: component }
+        }
+        throw new Error(`Module ${modulePath} not found in remote ${remoteName}`)
+      }
+
+      // Factory is a function that returns the module
+      const component = factory()
+      
+      // lazy() expects a promise that resolves to { default: Component }
+      // Return an object with default property to match React.lazy() expectations
+      return { default: component }
     } else {
-      // Production: Fetch remote URL from manifest
+      // Production: Load remoteEntry.js from manifest
       const config = await loadRemoteConfig(remoteName)
       if (!config) {
         throw new Error(`Remote module ${remoteName} not found in manifest`)
       }
-      remoteUrl = config.url
+
+      const remoteUrl = config.url
+
+      // Load the remote entry script
+      await loadScript(remoteUrl)
+
+      // Wait for the container to be exposed on window
+      let container = (window as any)[remoteName]
+      let retries = 10
+      while (!container && retries > 0) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        container = (window as any)[remoteName]
+        retries--
+      }
+
+      if (!container) {
+        throw new Error(`Remote container ${remoteName} not found after loading script`)
+      }
+
+      // Initialize the container with shared scope
+      const sharedScope = (window as any).__federation_shared__ || {}
+      await container.init(sharedScope)
+
+      // Get the module factory
+      const factory = await container.get(module)
+      if (!factory) {
+        throw new Error(`Module ${module} not found in remote ${remoteName}`)
+      }
+
+      // Factory is a function that returns the module
+      const component = factory()
+      
+      // lazy() expects a promise that resolves to { default: Component }
+      return { default: component }
     }
-
-    // Load the remote entry script
-    await loadScript(remoteUrl)
-
-    // Get the remote container from window
-    const container = (window as any)[remoteName]
-    if (!container) {
-      throw new Error(`Remote container ${remoteName} not found after loading script`)
-    }
-
-    // Initialize the container with shared scope
-    // Note: @originjs/vite-plugin-federation exposes __federation_shared__
-    const sharedScope = (window as any).__federation_shared__ || {}
-    await container.init(sharedScope)
-
-    // Get the module factory
-    const factory = await container.get(module)
-    if (!factory) {
-      throw new Error(`Module ${module} not found in remote ${remoteName}`)
-    }
-
-    // Return the module
-    return factory()
   })
 }
 
@@ -73,7 +170,7 @@ function loadScript(url: string): Promise<void> {
 
     const script = document.createElement('script')
     script.src = url
-    script.type = 'text/javascript'
+    script.type = 'module' // remoteEntry.js contains ES modules with import.meta
     script.async = true
     script.crossOrigin = 'anonymous'
     

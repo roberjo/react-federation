@@ -10,22 +10,46 @@ This guide explains how to run the project locally without an actual Okta OAuth 
 pnpm install
 ```
 
-### 2. Run Development Servers
+### 2. Build Remote Modules (First Time)
+
+**Important**: Remote modules must be built before they can be loaded by the portal:
+
+```powershell
+# Build all remotes
+pnpm --filter trade-plans build
+pnpm --filter client-verification build
+pnpm --filter annuity-sales build
+
+# Or build all at once
+pnpm --recursive --filter "./packages/*" build
+```
+
+**Why?** Remote modules use `vite preview` to serve their built `dist` folders (where `remoteEntry.js` is generated). `vite dev` doesn't serve the `dist` folder.
+
+### 3. Run Development Servers
 
 ```powershell
 # Run all packages (portal + remotes) in parallel
 pnpm dev
 
 # Or run individually
-pnpm dev:portal          # Portal on http://localhost:5173
-pnpm dev:trade-plans      # Trade Plans on http://localhost:5001
-pnpm dev:client-verification  # Client Verification on http://localhost:5002
-pnpm dev:annuity-sales    # Annuity Sales on http://localhost:5003
+pnpm dev:portal          # Portal on http://localhost:5173 (vite dev)
+pnpm dev:trade-plans      # Trade Plans on http://localhost:5001 (vite preview)
+pnpm dev:client-verification  # Client Verification on http://localhost:5002 (vite preview)
+pnpm dev:annuity-sales    # Annuity Sales on http://localhost:5003 (vite preview)
 ```
 
-### 3. Access the Portal
+**Note**: After making changes to remote modules, rebuild them:
+```powershell
+pnpm --filter <remote-name> build
+# The preview server will automatically serve the updated build
+```
+
+### 4. Access the Portal
 
 Open your browser to: **http://localhost:5173**
+
+The portal will automatically load remote modules from their preview servers when you navigate to them.
 
 ## Mock Authentication
 
@@ -191,16 +215,43 @@ When you access a remote module:
 
 ### Remotes Not Loading
 
-1. **Check all dev servers are running:**
+1. **Ensure remotes are built:**
+   ```powershell
+   # Build all remotes
+   pnpm --filter trade-plans build
+   pnpm --filter client-verification build
+   pnpm --filter annuity-sales build
+   ```
+
+2. **Check all dev servers are running:**
    ```powershell
    # Run all in parallel
    pnpm dev
    ```
+   
+   **Verify**:
+   - Portal: http://localhost:5173 (vite dev)
+   - Trade Plans: http://localhost:5001/assets/remoteEntry.js (vite preview)
+   - Client Verification: http://localhost:5002/assets/remoteEntry.js (vite preview)
+   - Annuity Sales: http://localhost:5003/assets/remoteEntry.js (vite preview)
 
-2. **Check remote URLs** in browser network tab
+3. **Check browser console** for errors:
+   - "Remote container not found" → Remote not built or preview server not running
+   - "React is null" → Shared scope not initialized (check main.tsx)
+   - "Module not found" → Wrong module path or remote not exposing module
 
-3. **Verify manifest.json** is accessible:
-   - http://localhost:5173/manifest.json
+4. **Verify remoteEntry.js is accessible:**
+   ```powershell
+   # Test in browser or PowerShell
+   Invoke-WebRequest -Uri "http://localhost:5001/assets/remoteEntry.js"
+   ```
+
+5. **Check shared scope initialization:**
+   ```javascript
+   // In browser console
+   console.log(window.__federation_shared__)
+   // Should show: { default: { react: {...}, 'react-dom': {...} } }
+   ```
 
 ### Roles Not Showing Correctly
 

@@ -12,33 +12,52 @@ This guide covers common issues you may encounter during development and deploym
 - Module fails to load
 - Console error: "Failed to load remote module"
 - Network error when fetching `remoteEntry.js`
+- Error: "Remote container not found after loading script"
 
 **Solutions:**
 
-1. **Check Remote is Running**
-   ```bash
-   # Verify remote is accessible
-   curl http://localhost:5001/assets/remoteEntry.js
+1. **Ensure Remote is Built and Running**
+   ```powershell
+   # Build the remote first
+   pnpm --filter trade-plans build
+   
+   # Then start preview server (not dev server)
+   pnpm --filter trade-plans dev
+   # This runs: vite preview --port 5001
    ```
 
-2. **Check CORS Configuration**
+2. **Verify remoteEntry.js is Accessible**
+   ```powershell
+   # Test in PowerShell
+   Invoke-WebRequest -Uri "http://localhost:5001/assets/remoteEntry.js"
+   
+   # Should return JavaScript code, not HTML
+   ```
+
+3. **Check Development vs Production Loading**
+   - **Development**: Uses `import()` to load `remoteEntry.js` as ES module
+   - **Production**: Uses `<script type="module">` to load `remoteEntry.js`
+   - Ensure correct method is used for your environment
+
+4. **Check CORS Configuration**
    ```typescript
    // Remote vite.config.ts
-   server: {
+   preview: {
+     port: 5001,
      cors: true,
-     headers: {
-       'Access-Control-Allow-Origin': '*'
-     }
+     strictPort: true
    }
    ```
 
-3. **Verify Remote Name**
+5. **Verify Remote Name**
    - Check remote name matches in portal config
    - Check remote name matches in manifest.json
+   - Check remote name matches federation name in remote's vite.config.ts
 
-4. **Check Network Tab**
+6. **Check Network Tab**
    - Verify `remoteEntry.js` request succeeds
    - Check response headers for CORS
+   - Verify response is JavaScript, not HTML (404 page)
 
 ### Issue: Module Federation Version Mismatch
 
@@ -71,6 +90,63 @@ This guide covers common issues you may encounter during development and deploym
    }
    ```
 
+### Issue: React is Null in Remote Module
+
+**Symptoms:**
+- Error: "Cannot read properties of null (reading 'useRef')"
+- Error: "(intermediate value) is not a function"
+- Remote module fails to render with React-related errors
+
+**Root Cause:** Shared scope (`__federation_shared__`) not initialized with React before remote modules load.
+
+**Solutions:**
+
+1. **Verify Shared Scope Initialization in main.tsx**
+   ```typescript
+   // packages/portal/src/main.tsx
+   // This MUST be called before ReactDOM.render()
+   initializeFederationSharedScope()
+   ```
+
+2. **Check Shared Scope Structure**
+   ```javascript
+   // In browser console
+   console.log(window.__federation_shared__)
+   // Should show:
+   // {
+   //   default: {
+   //     react: {
+   //       '18.2.0': {
+   //         get: function() { ... },
+   //         loaded: true,
+   //         from: 'portal'
+   //       }
+   //     },
+   //     'react-dom': { ... }
+   //   }
+   // }
+   ```
+
+3. **Verify get() Function Structure**
+   ```typescript
+   // Correct structure:
+   get: () => Promise.resolve(() => Promise.resolve(React))
+   
+   // The federation plugin calls: await (await versionValue.get())()
+   // So get() must return: Promise<() => Promise<React>>
+   ```
+
+4. **Ensure Initialization Happens Before Module Loading**
+   - Shared scope initialization in `main.tsx` runs immediately
+   - ModuleLoader also initializes shared scope before loading remotes
+   - Both are defensive measures to ensure React is available
+
+5. **Check Remote Module is Built**
+   ```powershell
+   # Remotes must be built before loading
+   pnpm --filter trade-plans build
+   ```
+
 ### Issue: Module Loads but Component Doesn't Render
 
 **Symptoms:**
@@ -97,7 +173,14 @@ This guide covers common issues you may encounter during development and deploym
    />
    ```
 
-3. **Check React Context**
+3. **Verify Component Wrapping**
+   ```typescript
+   // ModuleLoader must wrap component in { default: component }
+   const component = factory()
+   return { default: component } // Required for React.lazy()
+   ```
+
+4. **Check React Context**
    - Ensure React Router context is available
    - Check if component needs provider
 

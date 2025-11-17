@@ -159,18 +159,34 @@ Module Federation enables runtime module loading and sharing:
 sequenceDiagram
     participant Browser
     participant Portal
+    participant SharedScope
     participant Manifest
     participant Remote
     participant CDN
     
     Browser->>Portal: Load Portal
-    Portal->>Manifest: Fetch manifest.json
-    Manifest-->>Portal: Return remote URLs
-    Portal->>CDN: Request remoteEntry.js
-    CDN-->>Portal: Return remote entry
-    Portal->>Remote: Initialize container
-    Remote-->>Portal: Expose module
-    Portal->>Browser: Render module
+    Portal->>SharedScope: Initialize __federation_shared__<br/>with React/ReactDOM
+    SharedScope-->>Portal: Shared scope ready
+    
+    alt Development Mode
+        Portal->>Remote: import() remoteEntry.js<br/>(ES module)
+        Remote-->>Portal: Export get() and init()
+        Portal->>SharedScope: Call remoteModule.init(sharedScope)
+        Portal->>Remote: Call remoteModule.get('./App')
+        Remote-->>Portal: Return component factory
+        Portal->>Browser: Render component
+    else Production Mode
+        Portal->>Manifest: Fetch manifest.json
+        Manifest-->>Portal: Return remote URLs
+        Portal->>CDN: Request remoteEntry.js<br/>(script tag)
+        CDN-->>Portal: Return remote entry
+        Portal->>Remote: Wait for container on window
+        Remote-->>Portal: Container exposed
+        Portal->>SharedScope: Call container.init(sharedScope)
+        Portal->>Remote: Call container.get('./App')
+        Remote-->>Portal: Return component factory
+        Portal->>Browser: Render component
+    end
 ```
 
 ### Shared Dependencies
@@ -189,25 +205,70 @@ All modules share these dependencies (loaded once):
 - ✅ Shared routing context
 - ✅ Smaller bundle sizes
 
+**Critical Implementation Detail:**
+
+Shared dependencies must be initialized in `__federation_shared__` **before** any remote modules load. This is done in `main.tsx`:
+
+```typescript
+// Portal main.tsx - Initialize BEFORE ReactDOM.render()
+function initializeFederationSharedScope() {
+  const sharedScope = (window as any).__federation_shared__ || {}
+  sharedScope.default = sharedScope.default || {}
+  
+  // React structure: get() returns Promise<() => Promise<React>>
+  sharedScope.default.react = {
+    '18.2.0': {
+      get: () => Promise.resolve(() => Promise.resolve(React)),
+      loaded: true,
+      from: 'portal'
+    }
+  }
+  // Same for react-dom...
+}
+
+initializeFederationSharedScope() // Call immediately
+```
+
+**Why?** Remote modules access React via the shared scope. If React isn't initialized before the remote loads, you'll get "React is null" errors.
+
 ### Module Loading Flow
 
 ```mermaid
 flowchart TD
     Start[User Navigates to Route] --> CheckAuth{User Authenticated?}
     CheckAuth -->|No| Login[Redirect to Login]
-    CheckAuth -->|Yes| CheckGroups{Has Required Groups?}
-    CheckGroups -->|No| Unauthorized[Show Unauthorized]
-    CheckGroups -->|Yes| FetchManifest[Fetch Manifest]
+    CheckAuth -->|Yes| CheckRoles{Has Required Roles?}
+    CheckRoles -->|No| Unauthorized[Show Unauthorized]
+    CheckRoles -->|Yes| InitSharedScope[Initialize Shared Scope]
+    InitSharedScope[Initialize __federation_shared__ with React/ReactDOM] --> CheckEnv{Environment?}
+    
+    CheckEnv -->|Development| LoadDev[Load remoteEntry.js via import]
+    CheckEnv -->|Production| FetchManifest[Fetch Manifest from CDN]
+    
     FetchManifest --> GetURL[Get Remote URL]
-    GetURL --> LoadScript[Load remoteEntry.js]
-    LoadScript --> InitContainer[Initialize Container]
-    InitContainer --> GetModule[Get Module Factory]
-    GetModule --> Render[Render Component]
+    GetURL --> LoadScript[Load remoteEntry.js script]
+    LoadScript --> WaitContainer[Wait for Container]
+    
+    LoadDev --> ImportModule[Import remoteEntry.js as ES module]
+    ImportModule --> GetRemoteModule[Get remoteModule with get/init]
+    
+    WaitContainer --> InitContainer[Initialize Container with Shared Scope]
+    GetRemoteModule --> InitRemote[Call remoteModule.init sharedScope]
+    
+    InitContainer --> GetFactory[Get Module Factory]
+    InitRemote --> GetFactory[Call remoteModule.get modulePath]
+    
+    GetFactory --> CallFactory[Call factory to get component]
+    CallFactory --> WrapComponent[Wrap in default: component]
+    WrapComponent --> Render[Render Component via React.lazy]
     Render --> End[Module Loaded]
     
     LoadScript -->|Error| Retry{Retry Available?}
     Retry -->|Yes| LoadScript
     Retry -->|No| Error[Show Error UI]
+    
+    ImportModule -->|Error| Error
+    GetRemoteModule -->|Error| Error
 ```
 
 ## Authentication Flow

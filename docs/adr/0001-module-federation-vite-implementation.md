@@ -18,42 +18,76 @@ We will implement dynamic remote module loading using Vite Module Federation wit
 
 ## Implementation Details
 
-### Dynamic Script Loading
-- Load `remoteEntry.js` scripts dynamically using `document.createElement('script')`
-- Check for existing scripts to prevent duplicate loads
-- Handle script load errors gracefully
+### Shared Scope Initialization (Critical)
+- **Must initialize before loading remotes**: React and ReactDOM must be exposed in `__federation_shared__` before any remote modules load
+- Initialize in `main.tsx` immediately when the app starts
+- Structure: `get()` returns a promise that resolves to a function that returns the module
+- Pattern: `get: () => Promise.resolve(() => Promise.resolve(React))`
 
-### Container Initialization
-- Access remote container from `window[remoteName]` after script loads
-- Initialize container with shared scope from `window.__federation_shared__`
-- Get module factory using `container.get(module)`
-- Return factory result as React component
+### Development Mode Loading
+- Use `import()` to load `remoteEntry.js` as an ES module (not script tag)
+- Remotes must be **built** and served via `vite preview` (not `vite dev`)
+- `remoteEntry.js` is located at `/assets/remoteEntry.js` in the built dist folder
+- Remote module exports `get()` and `init()` functions directly
+
+### Production Mode Loading
+- Load `remoteEntry.js` via script tag with `type="module"`
+- Fetch remote URLs from manifest.json (S3/CDN)
+- Wait for container to be exposed on `window[remoteName]`
+- Initialize container with shared scope
+
+### Component Wrapping
+- Wrap components in `{ default: component }` for React.lazy() compatibility
+- Factory function returns the component directly
 
 ### Error Handling
 - Wrap module loading in React Error Boundary
 - Provide user-friendly error messages
-- Implement retry functionality
+- Implement retry functionality for container initialization
 - Handle network failures and missing modules
 
 ## Code Example
 
 ```typescript
+// main.tsx - Initialize shared scope FIRST
+function initializeFederationSharedScope() {
+  if (!(window as any).__federation_shared__) {
+    (window as any).__federation_shared__ = {}
+  }
+  const sharedScope = (window as any).__federation_shared__
+  if (!sharedScope.default) {
+    sharedScope.default = {}
+  }
+  // Expose React
+  sharedScope.default.react = {
+    '18.2.0': {
+      get: () => Promise.resolve(() => Promise.resolve(React)),
+      loaded: true,
+      from: 'portal'
+    }
+  }
+}
+initializeFederationSharedScope() // Call immediately
+
+// ModuleLoader.tsx - Load remote module
 const loadRemoteModule = (remoteName: string, module: string) => {
   return lazy(async () => {
-    // Get remote URL (dev or production)
-    const remoteUrl = getRemoteUrl(remoteName)
-    
-    // Load script dynamically
-    await loadScript(remoteUrl)
-    
-    // Get container and initialize
-    const container = (window as any)[remoteName]
-    const sharedScope = (window as any).__federation_shared__ || {}
-    await container.init(sharedScope)
-    
-    // Get and return module
-    const factory = await container.get(module)
-    return factory()
+    if (import.meta.env.DEV) {
+      // Dev: Use import() for ES module
+      const remoteModule = await import(/* @vite-ignore */ remoteUrl)
+      const sharedScope = initializeSharedScope()
+      await remoteModule.init(sharedScope)
+      const factory = await remoteModule.get(`./${module}`)
+      const component = factory()
+      return { default: component } // Wrap for React.lazy()
+    } else {
+      // Prod: Load script, wait for container
+      await loadScript(remoteUrl)
+      const container = (window as any)[remoteName]
+      await container.init(sharedScope)
+      const factory = await container.get(module)
+      return { default: factory() }
+    }
   })
 }
 ```

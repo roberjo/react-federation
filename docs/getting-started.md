@@ -37,28 +37,53 @@ cp packages/portal/.env.example packages/portal/.env
 .\scripts\create-env-examples.ps1
 ```
 
-### 4. Start Development Servers
+### 4. Build Remote Modules (First Time)
+
+**Important**: Remote modules must be built before they can be loaded by the portal:
+
+```bash
+# Build all remotes
+pnpm --filter trade-plans build
+pnpm --filter client-verification build
+pnpm --filter annuity-sales build
+
+# Or build all at once
+pnpm --recursive --filter "./packages/*" build
+```
+
+**Why?** Remote modules use `vite preview` to serve their built `dist` folders (where `remoteEntry.js` is generated). `vite dev` doesn't serve the `dist` folder.
+
+### 5. Start Development Servers
 
 ```bash
 # Start all services
 pnpm dev
 
 # Or start individually
-pnpm dev:portal              # Portal: http://localhost:5173
-pnpm dev:trade-plans         # Trade Plans: http://localhost:5001
-pnpm dev:client-verification # Client Verification: http://localhost:5002
-pnpm dev:annuity-sales       # Annuity Sales: http://localhost:5003
+pnpm dev:portal              # Portal: http://localhost:5173 (vite dev)
+pnpm dev:trade-plans         # Trade Plans: http://localhost:5001 (vite preview)
+pnpm dev:client-verification # Client Verification: http://localhost:5002 (vite preview)
+pnpm dev:annuity-sales       # Annuity Sales: http://localhost:5003 (vite preview)
 ```
 
-### 5. Access the Application
+**Note**: After making changes to remote modules, rebuild them:
+```bash
+pnpm --filter <remote-name> build
+# The preview server will automatically serve the updated build
+```
+
+### 6. Access the Application
 
 1. Open http://localhost:5173 in your browser
-2. Click "Sign In"
+2. Click "Sign In" (or "Continue to Demo" in mock mode)
 3. Enter a test email:
-   - `admin@example.com` - Full access
-   - `trader@example.com` - Trade Plans access
-   - `compliance@example.com` - Client Verification access
-   - `sales@example.com` - Annuity Sales access
+   - `admin@example.com` - Full access (all modules)
+   - `trader@example.com` - Trade Plans access only
+   - `compliance@example.com` - Client Verification access only
+   - `sales@example.com` - Annuity Sales access only
+   - `multi-role@example.com` - Trade Plans + Client Verification
+
+The portal will automatically load remote modules when you navigate to them.
 
 ## What's Next?
 
@@ -128,10 +153,15 @@ Get-Process -Id (Get-NetTCPConnection -LocalPort 5173).OwningProcess | Stop-Proc
 
 ### Module Not Loading
 
-1. Ensure remote dev server is running
-2. Check browser console for errors
-3. Verify CORS is enabled in remote vite.config.ts
-4. Check Network tab for remoteEntry.js request
+1. **Ensure remotes are built** (see step 4 above)
+2. Ensure remote preview server is running (`pnpm dev` starts all servers)
+3. Check browser console for errors:
+   - "Remote container not found" → Remote not built or preview server not running
+   - "React is null" → Shared scope not initialized (check main.tsx)
+   - "Module not found" → Wrong module path or remote not exposing module
+4. Verify CORS is enabled in remote `vite.config.ts` preview config
+5. Check Network tab for `remoteEntry.js` request (should return JavaScript, not HTML)
+6. Verify shared scope: `console.log(window.__federation_shared__)` in browser console
 
 ### Authentication Issues
 
