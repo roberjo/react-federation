@@ -1,212 +1,531 @@
 # Architecture Overview
 
+This document provides a comprehensive overview of the Enterprise Portal micro-frontend architecture, including system design, component interactions, and deployment structure.
+
+## Table of Contents
+
+1. [System Architecture](#system-architecture)
+2. [Monorepo Structure](#monorepo-structure)
+3. [Module Federation Architecture](#module-federation-architecture)
+4. [Authentication Flow](#authentication-flow)
+5. [State Management](#state-management)
+6. [Routing Strategy](#routing-strategy)
+7. [Deployment Architecture](#deployment-architecture)
+8. [Communication Patterns](#communication-patterns)
+9. [Error Handling](#error-handling)
+10. [Performance Considerations](#performance-considerations)
+11. [Security Architecture](#security-architecture)
+12. [Scalability](#scalability)
+
 ## System Architecture
 
-This enterprise portal uses a **micro-frontend architecture** with **Module Federation** to enable independently deployable sub-applications. The system consists of:
+The Enterprise Portal uses a **micro-frontend architecture** with **Module Federation** to enable independently deployable sub-applications.
 
-1. **Portal (Shell Application)** - Main application that orchestrates authentication, routing, and module loading
-2. **Remote Modules** - Independently deployable applications:
-   - Trade Plans
-   - Client Verification
-   - Annuity Sales
-3. **Shared Types Package** (Optional) - Common TypeScript types shared across modules
+### High-Level Architecture
 
-## Monorepo Architecture
+```mermaid
+graph TB
+    subgraph "Client Browser"
+        Portal[Portal Shell]
+        TP[Trade Plans Module]
+        CV[Client Verification Module]
+        AS[Annuity Sales Module]
+    end
+    
+    subgraph "CDN/Infrastructure"
+        CF[CloudFront CDN]
+        S3[S3 Buckets]
+        Manifest[Manifest Service]
+    end
+    
+    subgraph "Backend Services"
+        Okta[Okta Auth]
+        API[Backend APIs]
+    end
+    
+    Portal --> CF
+    TP --> CF
+    CV --> CF
+    AS --> CF
+    
+    CF --> S3
+    Portal --> Manifest
+    Portal --> Okta
+    TP --> API
+    CV --> API
+    AS --> API
+    
+    Portal -.loads.-> TP
+    Portal -.loads.-> CV
+    Portal -.loads.-> AS
+```
 
-All packages live in a single pnpm workspace. Each package still builds and deploys independently, while local development benefits from shared tooling and instant linking.
+### Component Overview
 
-## Workspace Structure
+```mermaid
+graph LR
+    subgraph "Portal Shell"
+        Auth[Authentication]
+        Router[Routing]
+        Loader[Module Loader]
+        Layout[Layout Components]
+    end
+    
+    subgraph "Remote Modules"
+        TP[Trade Plans]
+        CV[Client Verification]
+        AS[Annuity Sales]
+    end
+    
+    subgraph "Shared"
+        Types[Shared Types]
+        Utils[Shared Utils]
+    end
+    
+    Auth --> Router
+    Router --> Loader
+    Loader --> TP
+    Loader --> CV
+    Loader --> AS
+    Layout --> Router
+    
+    TP --> Types
+    CV --> Types
+    AS --> Types
+```
+
+## Monorepo Structure
+
+All packages live in a single **pnpm workspace**, enabling:
+- Shared tooling and dependencies
+- Instant cross-package linking
+- Coordinated builds
+- Independent deployment
+
+### Workspace Structure
 
 ```
 packages/
-├── portal/              # Host shell application
+├── portal/                    # Host shell application
 │   ├── Authentication (Okta)
 │   ├── Layout & Navigation
 │   ├── Module Loader
 │   └── Shared State Management
 │
-├── trade-plans/         # Remote module 1
-├── Trade Management
-├── Strategy Builder
-└── Analytics
+├── trade-plans/              # Remote module 1
+│   ├── Trade Management
+│   ├── Strategy Builder
+│   └── Analytics
 │
-├── client-verification/ # Remote module 2
-├── Verification Queue
-├── Document Management
-└── Compliance Checks
+├── client-verification/      # Remote module 2
+│   ├── Verification Queue
+│   ├── Document Management
+│   └── Compliance Checks
 │
-├── annuity-sales/       # Remote module 3
-├── Product Catalog
-├── Quote Calculator
-└── Sales Pipeline
+├── annuity-sales/            # Remote module 3
+│   ├── Product Catalog
+│   ├── Quote Calculator
+│   └── Sales Pipeline
 │
-└── shared/
-    ├── types/
-    └── utils/
+└── shared/                   # Shared code
+    ├── types/                # TypeScript types
+    └── utils/                # Utility functions
 ```
 
-## Technology Stack
+### Package Dependencies
 
-### Core Technologies
-- **React 18.3+** - UI framework with concurrent features
-- **TypeScript** - Type safety across all modules
-- **Vite 5+** - Fast build tool and dev server
-- **MobX 6+** - Reactive state management
-- **Module Federation** - Micro-frontend architecture via `@originjs/vite-plugin-federation`
-- **React Router v6** - Client-side routing
-- **Tailwind CSS** - Utility-first styling
-
-### Authentication & Security
-- **Okta React SDK** - OAuth 2.0 authentication
-- **JWT Tokens** - Access token management
-- **Role-Based Access Control (RBAC)** - Group and role-based permissions
+```mermaid
+graph TD
+    Portal --> Shared
+    TradePlans --> Shared
+    ClientVerification --> Shared
+    AnnuitySales --> Shared
+    
+    Portal -.federation.-> TradePlans
+    Portal -.federation.-> ClientVerification
+    Portal -.federation.-> AnnuitySales
+    
+    style Portal fill:#e1f5ff
+    style Shared fill:#fff4e1
+```
 
 ## Module Federation Architecture
 
-### How It Works
+### How Module Federation Works
 
-1. **Portal (Host)** loads and orchestrates remote modules
-2. **Remotes** expose their components via `remoteEntry.js`
-3. **Shared Dependencies** are loaded once and shared across modules
-4. **Dynamic Loading** - Remotes are loaded on-demand based on user permissions
+Module Federation enables runtime module loading and sharing:
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Portal
+    participant Manifest
+    participant Remote
+    participant CDN
+    
+    Browser->>Portal: Load Portal
+    Portal->>Manifest: Fetch manifest.json
+    Manifest-->>Portal: Return remote URLs
+    Portal->>CDN: Request remoteEntry.js
+    CDN-->>Portal: Return remote entry
+    Portal->>Remote: Initialize container
+    Remote-->>Portal: Expose module
+    Portal->>Browser: Render module
+```
 
 ### Shared Dependencies
 
 All modules share these dependencies (loaded once):
-- `react`
-- `react-dom`
-- `mobx`
-- `mobx-react-lite`
-- `react-router-dom`
 
-This ensures:
-- Single instance of React across all modules
-- Consistent state management
-- Shared routing context
+- `react` (^18.2.0)
+- `react-dom` (^18.2.0)
+- `mobx` (^6.12.0)
+- `mobx-react-lite` (^4.0.0)
+- `react-router-dom` (^6.20.0)
+
+**Benefits:**
+- ✅ Single instance of React across all modules
+- ✅ Consistent state management
+- ✅ Shared routing context
+- ✅ Smaller bundle sizes
+
+### Module Loading Flow
+
+```mermaid
+flowchart TD
+    Start[User Navigates to Route] --> CheckAuth{User Authenticated?}
+    CheckAuth -->|No| Login[Redirect to Login]
+    CheckAuth -->|Yes| CheckGroups{Has Required Groups?}
+    CheckGroups -->|No| Unauthorized[Show Unauthorized]
+    CheckGroups -->|Yes| FetchManifest[Fetch Manifest]
+    FetchManifest --> GetURL[Get Remote URL]
+    GetURL --> LoadScript[Load remoteEntry.js]
+    LoadScript --> InitContainer[Initialize Container]
+    InitContainer --> GetModule[Get Module Factory]
+    GetModule --> Render[Render Component]
+    Render --> End[Module Loaded]
+    
+    LoadScript -->|Error| Retry{Retry Available?}
+    Retry -->|Yes| LoadScript
+    Retry -->|No| Error[Show Error UI]
+```
 
 ## Authentication Flow
 
-```
-1. User accesses Portal
-2. Portal checks authentication status
-3. If not authenticated → Redirect to Okta login
-4. Okta authenticates user
-5. Callback returns to Portal with tokens
-6. Portal parses JWT claims and groups
-7. Portal shows only accessible modules based on groups
-8. User clicks module → Module loads dynamically
+### Authentication Sequence
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Portal
+    participant Okta
+    participant Backend
+    
+    User->>Portal: Access Portal
+    Portal->>Portal: Check Auth Status
+    Portal->>User: Redirect to Login
+    User->>Okta: Enter Credentials
+    Okta->>Okta: Authenticate User
+    Okta->>Portal: Callback with Code
+    Portal->>Okta: Exchange Code for Tokens
+    Okta-->>Portal: Return JWT Tokens
+    Portal->>Portal: Parse JWT Claims
+    Portal->>Portal: Extract Groups/Roles
+    Portal->>User: Show Authorized Modules
+    User->>Portal: Navigate to Module
+    Portal->>Backend: API Call with Token
+    Backend-->>Portal: Return Data
 ```
 
-## Module Loading Flow
+### Token Management
 
-```
-1. User navigates to module route
-2. Portal checks user groups against module requirements
-3. If authorized:
-   a. Fetch manifest.json (if not cached)
-   b. Get remote URL from manifest
-   c. Load remoteEntry.js dynamically
-   d. Initialize module federation container
-   e. Get exposed component
-   f. Render component
-4. If not authorized → Show unauthorized page
+```mermaid
+stateDiagram-v2
+    [*] --> Unauthenticated
+    Unauthenticated --> Authenticating: Login Request
+    Authenticating --> Authenticated: Token Received
+    Authenticated --> TokenExpiring: Token Near Expiry
+    TokenExpiring --> Refreshing: Refresh Token
+    Refreshing --> Authenticated: New Token
+    Refreshing --> Unauthenticated: Refresh Failed
+    Authenticated --> Unauthenticated: Logout
+    Authenticated --> Unauthenticated: Token Invalid
 ```
 
 ## State Management
 
-### Portal State
-- **AuthStore** - Authentication state, tokens, claims, groups
-- **UserStore** - User profile information
-- **RootStore** - Combines all stores
+### State Architecture
 
-### Remote Module State
-Each remote module has its own local stores:
-- Trade Plans: `TradeStore`, `StrategyStore`
-- Client Verification: `VerificationStore`, `DocumentStore`
-- Annuity Sales: `AnnuityStore`, `QuoteStore`, `SalesStore`
+```mermaid
+graph TB
+    subgraph "Portal State"
+        AuthStore[AuthStore]
+        UserStore[UserStore]
+        RootStore[RootStore]
+    end
+    
+    subgraph "Remote Module State"
+        TPStore[Trade Plans Store]
+        CVStore[Client Verification Store]
+        ASStore[Annuity Sales Store]
+    end
+    
+    RootStore --> AuthStore
+    RootStore --> UserStore
+    
+    AuthStore -.props.-> TPStore
+    AuthStore -.props.-> CVStore
+    AuthStore -.props.-> ASStore
+```
 
 ### State Sharing Strategy
 
-The portal injects an `auth` object and callbacks into each remote via props. This keeps remotes framework-agnostic, works in standalone mode, and avoids a hard coupling on global state.
+**Props Injection** (Recommended - See [ADR-0002](./adr/0002-token-sharing-props-injection.md))
+
+The portal injects authentication state into remotes via props:
+
+```typescript
+// Portal passes auth state
+<ModuleLoader 
+  remoteName="tradePlans"
+  module="./App"
+  props={{
+    auth: {
+      user: authStore.claims,
+      token: authStore.accessToken,
+      groups: authStore.groups,
+      isAuthenticated: authStore.isAuthenticated,
+      hasGroup: (group: string) => authStore.hasGroup(group),
+    },
+    onLogout: () => authStore.logout(),
+  }}
+/>
+```
+
+**Benefits:**
+- ✅ Type-safe interface
+- ✅ Explicit dependencies
+- ✅ Works in standalone mode
+- ✅ No global state pollution
 
 ## Routing Strategy
 
 ### Portal Routes
+
 ```
-/ - Dashboard (if exists)
-/login - Login page
-/login/callback - Okta callback handler
-/unauthorized - Access denied page
-/trade-plans/* - Trade Plans module (lazy loaded)
-/client-verification/* - Client Verification module (lazy loaded)
-/annuity-sales/* - Annuity Sales module (lazy loaded)
+/                          → Dashboard (if exists)
+/login                     → Login page
+/login/callback            → Okta callback handler
+/unauthorized              → Access denied page
+/trade-plans/*             → Trade Plans module (lazy loaded)
+/client-verification/*     → Client Verification module (lazy loaded)
+/annuity-sales/*           → Annuity Sales module (lazy loaded)
 ```
 
 ### Remote Module Routes
+
 Each remote module manages its own internal routing:
-- Trade Plans: `/trade-plans/`, `/trade-plans/strategies`, `/trade-plans/analytics`
-- Client Verification: `/client-verification/`, `/client-verification/queue`, `/client-verification/profile/:id`
-- Annuity Sales: `/annuity-sales/`, `/annuity-sales/products`, `/annuity-sales/quotes`
+
+- **Trade Plans**: `/trade-plans/`, `/trade-plans/strategies`, `/trade-plans/analytics`
+- **Client Verification**: `/client-verification/`, `/client-verification/queue`, `/client-verification/profile/:id`
+- **Annuity Sales**: `/annuity-sales/`, `/annuity-sales/products`, `/annuity-sales/quotes`
+
+### Routing Flow
+
+```mermaid
+flowchart LR
+    PortalRoute[Portal Route] --> CheckAuth{Authenticated?}
+    CheckAuth -->|No| Login[Login Page]
+    CheckAuth -->|Yes| CheckModule{Module Route?}
+    CheckModule -->|No| Dashboard[Dashboard]
+    CheckModule -->|Yes| LoadModule[Load Module]
+    LoadModule --> ModuleRoute[Module Internal Routes]
+```
 
 ## Deployment Architecture
 
 ### S3/CDN Structure
+
 ```
 s3://bucket/
 ├── portal/
-│   ├── v1.0.0/
-│   └── current/ → v1.0.0/
+│   ├── v1.0.0/              # Versioned deployment
+│   ├── v1.1.0/
+│   └── current/ → v1.1.0/   # Latest version symlink
+│
 ├── trade-plans/
 │   ├── v1.0.0/
 │   └── current/ → v1.0.0/
+│
 ├── client-verification/
 │   ├── v1.0.0/
 │   └── current/ → v1.0.0/
+│
 ├── annuity-sales/
 │   ├── v1.0.0/
 │   └── current/ → v1.0.0/
-└── manifest.json
+│
+└── manifest.json            # Remote module registry
+```
+
+### Deployment Flow
+
+```mermaid
+sequenceDiagram
+    participant Dev
+    participant CI
+    participant S3
+    participant CloudFront
+    participant Manifest
+    
+    Dev->>CI: Push to Main
+    CI->>CI: Build Package
+    CI->>S3: Upload Versioned Bundle
+    CI->>S3: Update Current Symlink
+    CI->>Manifest: Update manifest.json
+    CI->>CloudFront: Invalidate Cache
+    CloudFront-->>Users: Serve New Version
 ```
 
 ### Version Management
+
 - Each module versions independently
 - `current` symlink points to latest version
 - Portal fetches `manifest.json` to discover available versions
-- Can support A/B testing and gradual rollouts
+- Supports A/B testing and gradual rollouts
 
 ## Communication Patterns
 
 ### Portal → Remote
-1. **Props** - Pass auth state, user info, callbacks
+
+1. **Props Injection** - Pass auth state, user info, callbacks
 2. **Events** - Custom events for cross-module communication
 3. **Shared State** - Via shared MobX stores (if using shared package)
 
 ### Remote → Portal
+
 1. **Callbacks** - Functions passed as props
 2. **Events** - Custom events dispatched to window
 3. **Navigation** - Use React Router's `useNavigate` (shared context)
 
+### Communication Diagram
+
+```mermaid
+graph LR
+    Portal -->|Props| Remote
+    Portal -->|Events| Remote
+    Remote -->|Callbacks| Portal
+    Remote -->|Events| Portal
+    Remote -->|Navigation| Portal
+```
+
 ## Error Handling
 
-### Module Loading Errors
-- Error boundaries catch remote loading failures
-- Fallback UI shows user-friendly error message
-- Retry mechanism for transient failures
+### Error Handling Strategy
 
-### Authentication Errors
-- Token expiration → Auto-refresh or redirect to login
-- Invalid token → Clear state and redirect to login
-- Network errors → Show retry option
+```mermaid
+flowchart TD
+    Error[Error Occurs] --> Type{Error Type?}
+    Type -->|Module Load| ModuleError[Module Error Boundary]
+    Type -->|Auth| AuthError[Auth Error Handler]
+    Type -->|Network| NetworkError[Network Error Handler]
+    Type -->|Runtime| RuntimeError[Runtime Error Boundary]
+    
+    ModuleError --> Retry{Retry?}
+    Retry -->|Yes| LoadModule[Reload Module]
+    Retry -->|No| FallbackUI[Show Fallback UI]
+    
+    AuthError --> Refresh{Refresh Token?}
+    Refresh -->|Yes| RefreshToken[Refresh Token]
+    Refresh -->|No| RedirectLogin[Redirect to Login]
+    
+    NetworkError --> RetryNetwork{Retry?}
+    RetryNetwork -->|Yes| RetryRequest[Retry Request]
+    RetryNetwork -->|No| ShowError[Show Error Message]
+```
+
+### Error Boundaries
+
+- **Module Loading Errors** - Error boundaries catch remote loading failures
+- **Authentication Errors** - Token expiration → Auto-refresh or redirect to login
+- **Network Errors** - Show retry option with exponential backoff
 
 ## Performance Considerations
 
-1. **Code Splitting** - Each module is a separate bundle
-2. **Lazy Loading** - Modules load only when needed
-3. **Shared Dependencies** - Loaded once, shared across modules
-4. **Caching** - Manifest and remote entries cached
-5. **CDN** - All assets served from CDN for fast global access
+### Performance Optimizations
 
-## Security Considerations
+```mermaid
+graph TB
+    subgraph "Code Splitting"
+        LazyLoad[Lazy Load Modules]
+        CodeSplit[Code Split Within Modules]
+    end
+    
+    subgraph "Caching"
+        ManifestCache[Cache Manifest]
+        RemoteCache[Cache Remote Entries]
+        CDNCache[CDN Caching]
+    end
+    
+    subgraph "Bundle Optimization"
+        SharedDeps[Shared Dependencies]
+        TreeShake[Tree Shaking]
+        Minify[Minification]
+    end
+    
+    LazyLoad --> Performance
+    CodeSplit --> Performance
+    ManifestCache --> Performance
+    RemoteCache --> Performance
+    CDNCache --> Performance
+    SharedDeps --> Performance
+    TreeShake --> Performance
+    Minify --> Performance
+```
+
+### Performance Metrics
+
+- **Module Load Times** - Target: < 2s for initial load
+- **Time to Interactive** - Target: < 3s
+- **Bundle Sizes** - Portal: < 500KB, Remotes: < 300KB each
+- **Cache Hit Rate** - Target: > 80% for static assets
+
+## Security Architecture
+
+### Security Layers
+
+```mermaid
+graph TB
+    subgraph "Client Security"
+        HTTPS[HTTPS Only]
+        CSP[Content Security Policy]
+        TokenSec[Token Security]
+    end
+    
+    subgraph "Authentication"
+        OktaAuth[Okta OAuth 2.0]
+        JWT[JWT Tokens]
+        Refresh[Token Refresh]
+    end
+    
+    subgraph "Authorization"
+        GroupCheck[Group Validation]
+        RoleCheck[Role Validation]
+        ServerVal[Server-Side Validation]
+    end
+    
+    HTTPS --> Security
+    CSP --> Security
+    TokenSec --> Security
+    OktaAuth --> Security
+    JWT --> Security
+    Refresh --> Security
+    GroupCheck --> Security
+    RoleCheck --> Security
+    ServerVal --> Security
+```
+
+### Security Considerations
 
 1. **CORS** - Proper CORS configuration for remote modules
 2. **Content Security Policy** - CSP headers for XSS protection
@@ -217,21 +536,55 @@ s3://bucket/
 ## Scalability
 
 ### Adding New Modules
-1. Scaffold a new package inside `packages/`
-2. Configure Vite Module Federation (`federation({ name, exposes })`)
-3. Add the package to `pnpm-workspace.yaml`
-4. Register its dev URL in `portal/vite.config.ts`
-5. Publish the remote bundle and update `manifest.json`
+
+```mermaid
+flowchart TD
+    Start[Add New Module] --> Scaffold[Scaffold Package]
+    Scaffold --> Config[Configure Module Federation]
+    Config --> Workspace[Add to Workspace]
+    Workspace --> DevURL[Register Dev URL]
+    DevURL --> Build[Build & Deploy]
+    Build --> Manifest[Update Manifest]
+    Manifest --> Route[Add Routing]
+    Route --> End[Module Available]
+```
 
 ### Module Updates
+
 - Deploy new version
 - Update manifest.json
 - Portal loads new version on next navigation
 - Old version remains available for rollback
 
+### Horizontal Scaling
+
+- Each module can scale independently
+- CDN provides global distribution
+- No shared server infrastructure required
+- Stateless architecture enables easy scaling
+
+## Technology Stack
+
+### Core Technologies
+
+- **React 18.2+** - UI framework with concurrent features
+- **TypeScript** - Type safety across all modules
+- **Vite 5+** - Fast build tool and dev server
+- **MobX 6+** - Reactive state management
+- **Module Federation** - Micro-frontend architecture via `@originjs/vite-plugin-federation`
+- **React Router v6** - Client-side routing
+- **Tailwind CSS** - Utility-first styling
+
+### Authentication & Security
+
+- **Okta React SDK** - OAuth 2.0 authentication
+- **JWT Tokens** - Access token management
+- **Role-Based Access Control (RBAC)** - Group and role-based permissions
+
 ## Monitoring & Observability
 
 ### Recommended Metrics
+
 - Module load times
 - Authentication success/failure rates
 - Module error rates
@@ -239,8 +592,21 @@ s3://bucket/
 - API response times
 
 ### Logging
+
 - Client-side error logging
 - Authentication events
 - Module load events
 - User actions (for audit trail)
 
+## Related Documentation
+
+- [Module Federation Guide](./module-federation-guide.md) - Technical deep dive
+- [Development Guide](./development-guide.md) - Development workflow
+- [Deployment Guide](./deployment-guide.md) - Production deployment
+- [Architecture Decision Records](./adr/README.md) - Key decisions
+- [Security Guide](./security-authentication-guide.md) - Security details
+
+---
+
+**Last Updated:** 2024  
+**Maintained by:** Architecture Team

@@ -1,273 +1,236 @@
-# Documentation Index
+# Documentation
 
-This directory contains comprehensive documentation for the Enterprise Portal with Micro-Frontend Architecture project.
+Welcome to the Enterprise Portal with Micro-Frontend Architecture documentation. This documentation is organized to help you quickly find what you need, whether you're a developer, architect, or DevOps engineer.
 
-## Documentation Structure
+## 📚 Documentation Structure
 
-### Core Documentation
+### 🚀 Getting Started
 
-1. **[Architecture Overview](./architecture-overview.md)**
-   - System architecture
-   - Multi-repository structure
-   - Module Federation architecture
-   - Authentication flow
-   - State management
-   - Deployment architecture
+- **[Quick Start Guide](./getting-started.md)** - Get up and running in 5 minutes
+- **[Setup Instructions](./setup-instructions.md)** - Detailed setup guide
+- **[Development Guide](./development-guide.md)** - Complete development workflow
 
-2. **[Development Guide](./development-guide.md)**
-   - Prerequisites and setup
-   - Local development workflow
-   - Code organization
-   - Testing strategies
-   - Common development tasks
+### 🏗️ Architecture
 
-3. **[Module Federation Guide](./module-federation-guide.md)**
-   - Technical implementation details
-   - Portal configuration
-   - Remote module configuration
-   - Shared dependencies
-   - State sharing patterns
-   - Error handling
+- **[Architecture Overview](./architecture-overview.md)** - System architecture with diagrams
+- **[Module Federation Guide](./module-federation-guide.md)** - Technical deep dive
+- **[Architecture Decision Records (ADRs)](./adr/README.md)** - Key architectural decisions
 
-4. **[Deployment Guide](./deployment-guide.md)**
-   - AWS S3 and CloudFront setup
-   - CI/CD pipelines
-   - Version management
-   - Manifest management
-   - Rollback procedures
-   - Monitoring
+### 💻 Development
 
-5. **[Security & Authentication Guide](./security-authentication-guide.md)**
-   - Okta OAuth 2.0 setup
-   - Token management
-   - Authorization patterns
-   - Security best practices
-   - Session management
-   - Compliance considerations
+- **[Development Guide](./development-guide.md)** - Local development workflow
+- **[Testing Guide](./testing-guide.md)** - Testing strategies and examples
+- **[Mocking Guide](./mocking-guide.md)** - Mock services for development
+- **[API Integration Guide](./api-integration-guide.md)** - API client patterns
 
-6. **[API Integration Guide](./api-integration-guide.md)**
-   - API client setup
-   - Service patterns
-   - Error handling
-   - Request/response logging
-   - Retry logic
-   - Testing
+### 🎨 Design & UI
 
-7. **[Design System](./design-system.md)**
-   - Color palette
-   - Typography
-   - Components
-   - Layout guidelines
-   - Responsive design
-   - Accessibility
+- **[Design System](./design-system.md)** - Component library and guidelines
+- **[Component Reference](./component-reference.md)** - Available components
 
-8. **[Troubleshooting Guide](./troubleshooting-guide.md)**
-   - Common issues and solutions
-   - Module Federation issues
-   - Authentication issues
-   - Build and deployment issues
-   - Runtime issues
-   - Debugging tips
+### 🔐 Security
 
-9. **[Gaps and Issues Analysis](./gaps-and-issues-analysis.md)**
-   - Critical issues identified
-   - Design gaps
-   - Technical concerns
-   - Security concerns
-   - Recommendations
-   - Questions for stakeholders
+- **[Security & Authentication Guide](./security-authentication-guide.md)** - Okta setup and security
+- **[Security Best Practices](./security-best-practices.md)** - Security guidelines
 
-10. **[Architecture Decision Records (ADRs)](./adr/README.md)**
-    - ADR-0001: Module Federation Implementation for Vite
-    - ADR-0002: Token Sharing Strategy - Props Injection
-    - ADR-0003: Manifest Management - S3/CDN Approach
+### 🚢 Deployment
 
-11. **[Monorepo Setup Guide](./monorepo-setup.md)**
-    - Monorepo structure
-    - Package configuration
-    - Workspace setup
-    - Shared package setup
+- **[Deployment Guide](./deployment-guide.md)** - Production deployment
+- **[AWS & Terraform Guide](./aws-terraform-cloud.md)** - Infrastructure as code
+- **[CI/CD Guide](./cicd-guide.md)** - Continuous integration and deployment
 
-12. **[Mocking Guide](./mocking-guide.md)**
-    - Mock Okta authentication
-    - Mock data services APIs
-    - MSW setup
-    - Development workflow
+### 🛠️ Operations
 
-13. **[Testing Strategy](./testing-strategy.md)**
-    - Testing philosophy
-    - Testing pyramid
-    - Test structure
-    - Coverage goals
+- **[Troubleshooting Guide](./troubleshooting-guide.md)** - Common issues and solutions
+- **[Monitoring Guide](./monitoring-guide.md)** - Observability and monitoring
+- **[Performance Guide](./performance-guide.md)** - Optimization strategies
 
-14. **[Testing Guide](./testing-guide.md)**
-    - Running tests
-    - Writing tests
-    - Test examples
-    - Troubleshooting
+### 📖 Reference
 
-15. **[Testing Summary](./TESTING_SUMMARY.md)**
-    - Test results
-    - Coverage status
-    - Test infrastructure
+- **[API Reference](./api-reference.md)** - API documentation
+- **[Configuration Reference](./configuration-reference.md)** - All configuration options
+- **[Glossary](./glossary.md)** - Terms and concepts
 
-16. **[Fusion-Site Migration Plan](./migration-plan-fusion-site.md)**
-    - Migration strategy
-    - Step-by-step migration guide
-    - Component migration checklist
-    - Dependencies and setup
+## 🎯 Quick Navigation by Role
 
-17. **[Fusion-Site Comparison](./fusion-site-comparison.md)**
-    - Side-by-side comparison
-    - Design system differences
-    - Component comparison
-    - Migration impact analysis
+### New Developer
+1. [Quick Start Guide](./getting-started.md) (5 min)
+2. [Development Guide](./development-guide.md) (30 min)
+3. [Architecture Overview](./architecture-overview.md) (20 min)
+4. [Module Federation Guide](./module-federation-guide.md) (30 min)
 
-18. **[Migration Summary](./MIGRATION_SUMMARY.md)**
-    - Quick overview
-    - Key findings
-    - Migration phases
-    - Success criteria
-19. **[AWS & Terraform Cloud Deployment Guide](./aws-terraform-cloud.md)**
-    - AWS hosting architecture
-    - Terraform Cloud workspace strategy
-    - Module structure and CI/CD integration
-    - Operational checklist
+### Frontend Developer
+1. [Development Guide](./development-guide.md)
+2. [Design System](./design-system.md)
+3. [Testing Guide](./testing-guide.md)
+4. [Component Reference](./component-reference.md)
 
-## Quick Start
+### Backend/API Developer
+1. [API Integration Guide](./api-integration-guide.md)
+2. [API Reference](./api-reference.md)
+3. [Security Guide](./security-authentication-guide.md)
 
-### For Developers
+### DevOps Engineer
+1. [Deployment Guide](./deployment-guide.md)
+2. [AWS & Terraform Guide](./aws-terraform-cloud.md)
+3. [CI/CD Guide](./cicd-guide.md)
+4. [Monitoring Guide](./monitoring-guide.md)
 
-1. Start with [Development Guide](./development-guide.md) for setup
-2. Read [Architecture Overview](./architecture-overview.md) for system understanding
-3. Review [Module Federation Guide](./module-federation-guide.md) for technical details
-4. Check [Troubleshooting Guide](./troubleshooting-guide.md) when issues arise
+### Architect/Tech Lead
+1. [Architecture Overview](./architecture-overview.md)
+2. [Architecture Decision Records](./adr/README.md)
+3. [Module Federation Guide](./module-federation-guide.md)
+4. [Performance Guide](./performance-guide.md)
 
-### For DevOps
+## 📊 Documentation Map
 
-1. Start with [Deployment Guide](./deployment-guide.md)
-2. Review [Architecture Overview](./architecture-overview.md) for deployment structure
-3. Check [Troubleshooting Guide](./troubleshooting-guide.md) for deployment issues
-
-### For Architects
-
-1. Read [Architecture Overview](./architecture-overview.md)
-2. Review [Gaps and Issues Analysis](./gaps-and-issues-analysis.md)
-3. Check [Module Federation Guide](./module-federation-guide.md) for technical details
-
-## Key Concepts
-
-### Monorepo Workspace
-
-All packages live in a single pnpm workspace:
-- `packages/portal` – host shell
-- `packages/trade-plans` – trade management remote
-- `packages/client-verification` – KYC queue remote
-- `packages/annuity-sales` – annuity pipeline remote
-- `packages/shared` – shared types/utilities
-
-This preserves independent builds while simplifying local development and cross-package refactors.
-
-### Module Federation
-
-Uses `@originjs/vite-plugin-federation` to enable:
-- Dynamic module loading
-- Shared dependencies
-- Independent deployment
-- Runtime module discovery
-
-**See**: [ADR-0001](./adr/0001-module-federation-vite-implementation.md) for implementation details
-
-### Authentication
-
-Okta OAuth 2.0 with:
-- JWT token management
-- Group-based access control
-- Role-based permissions
-- Automatic token refresh
-
-### State Management
-
-MobX for reactive state:
-- Portal state (AuthStore, UserStore)
-- Remote module state (module-specific stores)
-- **State sharing via props injection** (see [ADR-0002](./adr/0002-token-sharing-props-injection.md))
-
-### Manifest Management
-
-S3/CDN-stored manifest.json for dynamic remote discovery:
-- Manifest stored in S3, served via CDN
-- Each remote updates manifest on deployment
-- Portal fetches manifest at runtime
-
-**See**: [ADR-0003](./adr/0003-manifest-management-s3-cdn.md) for implementation details
-
-## Important Notes
-
-### Critical Issues
-
-The latest architecture decisions and implementation details are captured in the ADRs and migration documents listed above. Historical issues tracked in [Gaps and Issues Analysis](./gaps-and-issues-analysis.md) have been resolved as part of the shadcn design system migration and remote integration work.
-
-### Design Decisions
-
-Key architectural decisions have been documented:
-
-1. **Manifest Management** - ✅ **S3/CDN Approach** (see [ADR-0003](./adr/0003-manifest-management-s3-cdn.md))
-2. **State Sharing** - ✅ **Props Injection** (see [ADR-0002](./adr/0002-token-sharing-props-injection.md))
-3. **Module Federation** - ✅ **Vite Implementation** (see [ADR-0001](./adr/0001-module-federation-vite-implementation.md))
-
-All decisions are documented in [Architecture Decision Records](./adr/README.md).
-
-## Project Structure
-
-```
-react-federation/
-├── docs/
-│   ├── README.md (this file)
-│   ├── architecture-overview.md
-│   ├── development-guide.md
-│   ├── module-federation-guide.md
-│   ├── deployment-guide.md
-│   ├── security-authentication-guide.md
-│   ├── api-integration-guide.md
-│   ├── design-system.md
-│   ├── troubleshooting-guide.md
-│   ├── gaps-and-issues-analysis.md
-│   └── cursor_prompt.md (original prompt)
-└── README.md
+```mermaid
+graph TD
+    A[Documentation] --> B[Getting Started]
+    A --> C[Architecture]
+    A --> D[Development]
+    A --> E[Deployment]
+    A --> F[Operations]
+    
+    B --> B1[Quick Start]
+    B --> B2[Setup]
+    B --> B3[Development Guide]
+    
+    C --> C1[Architecture Overview]
+    C --> C2[Module Federation]
+    C --> C3[ADRs]
+    
+    D --> D1[Development Workflow]
+    D --> D2[Testing]
+    D --> D3[API Integration]
+    D --> D4[Design System]
+    
+    E --> E1[Deployment Guide]
+    E --> E2[AWS/Terraform]
+    E --> E3[CI/CD]
+    
+    F --> F1[Troubleshooting]
+    F --> F2[Monitoring]
+    F --> F3[Performance]
 ```
 
-## Contributing
+## 🔍 Finding Information
 
-When updating documentation:
+### By Topic
 
-1. Keep documentation up to date with code changes
-2. Update related documentation when making changes
-3. Add examples and code snippets where helpful
-4. Document any new patterns or approaches
-5. Update troubleshooting guide with new issues
+**Module Federation**
+- [Module Federation Guide](./module-federation-guide.md) - Complete technical guide
+- [Architecture Overview - Module Federation](./architecture-overview.md#module-federation-architecture) - High-level overview
+- [ADR-0001: Module Federation Implementation](./adr/0001-module-federation-vite-implementation.md) - Decision record
 
-## Resources
+**Authentication**
+- [Security & Authentication Guide](./security-authentication-guide.md) - Complete guide
+- [Development Guide - Authentication](./development-guide.md#authentication) - Development setup
+- [ADR-0002: Token Sharing](./adr/0002-token-sharing-props-injection.md) - Architecture decision
+
+**Testing**
+- [Testing Guide](./testing-guide.md) - How to write and run tests
+- [Testing Strategy](./testing-strategy.md) - Testing philosophy
+- [Development Guide - Testing](./development-guide.md#testing) - Quick reference
+
+**Deployment**
+- [Deployment Guide](./deployment-guide.md) - Production deployment
+- [AWS & Terraform Guide](./aws-terraform-cloud.md) - Infrastructure setup
+- [CI/CD Guide](./cicd-guide.md) - Automated deployments
+
+### By Problem
+
+**"I can't get started"**
+→ [Quick Start Guide](./getting-started.md)
+
+**"Module won't load"**
+→ [Troubleshooting Guide - Module Federation](./troubleshooting-guide.md#module-federation-issues)
+
+**"How do I add a new remote?"**
+→ [Development Guide - Adding Modules](./development-guide.md#adding-a-new-remote-module)
+
+**"How does authentication work?"**
+→ [Security & Authentication Guide](./security-authentication-guide.md)
+
+**"How do I deploy?"**
+→ [Deployment Guide](./deployment-guide.md)
+
+## 📝 Documentation Standards
+
+### Writing Guidelines
+
+1. **Be Clear and Concise** - Get to the point quickly
+2. **Use Examples** - Show, don't just tell
+3. **Include Diagrams** - Visual aids help understanding
+4. **Keep Updated** - Update docs when code changes
+5. **Cross-Reference** - Link to related docs
+
+### Code Examples
+
+All code examples should:
+- Be complete and runnable
+- Include necessary imports
+- Show both TypeScript types and runtime behavior
+- Include error handling where relevant
+
+### Diagrams
+
+We use Mermaid for diagrams:
+- Architecture diagrams
+- Flow charts
+- Sequence diagrams
+- State diagrams
+
+## 🔄 Keeping Documentation Updated
+
+When making changes:
+
+1. **Update relevant docs** - If you change code, update docs
+2. **Update examples** - Ensure code examples still work
+3. **Update diagrams** - Keep architecture diagrams current
+4. **Check cross-references** - Update links if files move
+5. **Update CHANGELOG** - Document significant changes
+
+## 📚 Additional Resources
+
+### External Documentation
 
 - [Vite Documentation](https://vitejs.dev/)
 - [Module Federation Guide](https://module-federation.github.io/)
 - [MobX Documentation](https://mobx.js.org/)
-- [Okta React SDK](https://github.com/okta/okta-react)
 - [React Router v6](https://reactrouter.com/)
 - [Tailwind CSS](https://tailwindcss.com/)
+- [Okta React SDK](https://github.com/okta/okta-react)
 
-## Support
+### Internal Resources
 
-For questions or issues:
+- [Project README](../README.md) - Project overview
+- [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
+- [CHANGELOG.md](../CHANGELOG.md) - Version history
+- [SECURITY.md](../SECURITY.md) - Security policy
 
-1. Check [Troubleshooting Guide](./troubleshooting-guide.md)
-2. Review [Gaps and Issues Analysis](./gaps-and-issues-analysis.md)
-3. Check relevant documentation section
-4. Review GitHub issues
-5. Contact team members
+## 🆘 Getting Help
+
+1. **Check Documentation** - Search this index first
+2. **Check Troubleshooting Guide** - Common issues and solutions
+3. **Check GitHub Issues** - See if your issue is already reported
+4. **Ask the Team** - Reach out on Slack/Teams
+5. **Create an Issue** - If you find a bug or need a feature
+
+## 📅 Documentation Status
+
+| Document | Status | Last Updated |
+|----------|--------|-------------|
+| Quick Start | ✅ Complete | 2024 |
+| Architecture Overview | ✅ Complete | 2024 |
+| Development Guide | ✅ Complete | 2024 |
+| Module Federation Guide | ✅ Complete | 2024 |
+| Deployment Guide | ✅ Complete | 2024 |
+| Testing Guide | ✅ Complete | 2024 |
+| Troubleshooting Guide | ✅ Complete | 2024 |
 
 ---
 
-**Last Updated:** 2025-11-08  
-**Version:** 1.1.0
-
+**Last Updated:** 2024  
+**Maintained by:** Development Team  
+**Feedback:** Please create an issue or PR for documentation improvements

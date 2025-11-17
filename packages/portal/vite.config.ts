@@ -34,8 +34,9 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
-    minify: false,
-    cssCodeSplit: false
+    minify: process.env.NODE_ENV === 'production' ? 'terser' : false,
+    cssCodeSplit: true,
+    sourcemap: process.env.NODE_ENV === 'production' ? false : true,
   },
   server: {
     port: 5173,

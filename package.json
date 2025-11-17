@@ -21,7 +21,7 @@
     "test:coverage": "pnpm --recursive test:coverage",
     "test:e2e": "pnpm --filter portal test:e2e",
     "test:all": "pnpm test && pnpm test:e2e",
-    "clean": "pnpm --recursive clean && rm -rf node_modules"
+    "clean": "pnpm --recursive clean && Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue"
   },
   "devDependencies": {
     "typescript": "^5.3.3",
