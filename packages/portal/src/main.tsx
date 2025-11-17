@@ -22,25 +22,39 @@ function initializeFederationSharedScope() {
   // Expose React in shared scope for remote modules
   // The federation plugin calls: await (await versionValue.get())()
   // So get() must return a promise that resolves to a function that returns the module
+  // CRITICAL: Also expose React synchronously for mobx-react-lite
+  // mobx-react-lite needs React to be available immediately when it initializes
   if (!sharedScope.default.react) {
-    sharedScope.default.react = {
-      '18.2.0': {
-        get: () => Promise.resolve(() => Promise.resolve(React)),
-        loaded: true,
-        from: 'portal'
-      }
+    const reactVersion = {
+      get: () => Promise.resolve(() => Promise.resolve(React)),
+      loaded: true,
+      from: 'portal'
     }
+    // Expose React synchronously for immediate access
+    ;(reactVersion as any)._resolved = React
+    sharedScope.default.react = {
+      '18.2.0': reactVersion
+    }
+  } else if (!sharedScope.default.react['18.2.0']._resolved) {
+    // Ensure React is available synchronously
+    sharedScope.default.react['18.2.0']._resolved = React
   }
   
   // Expose ReactDOM in shared scope for remote modules
   if (!sharedScope.default['react-dom']) {
-    sharedScope.default['react-dom'] = {
-      '18.2.0': {
-        get: () => Promise.resolve(() => Promise.resolve(ReactDOM)),
-        loaded: true,
-        from: 'portal'
-      }
+    const reactDomVersion = {
+      get: () => Promise.resolve(() => Promise.resolve(ReactDOM)),
+      loaded: true,
+      from: 'portal'
     }
+    // Expose ReactDOM synchronously for immediate access
+    ;(reactDomVersion as any)._resolved = ReactDOM
+    sharedScope.default['react-dom'] = {
+      '18.2.0': reactDomVersion
+    }
+  } else if (!sharedScope.default['react-dom']['18.2.0']._resolved) {
+    // Ensure ReactDOM is available synchronously
+    sharedScope.default['react-dom']['18.2.0']._resolved = ReactDOM
   }
 }
 

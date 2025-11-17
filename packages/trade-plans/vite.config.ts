@@ -16,7 +16,9 @@ export default defineConfig({
         'react': { singleton: true, requiredVersion: '^18.2.0' },
         'react-dom': { singleton: true, requiredVersion: '^18.2.0' },
         'mobx': { singleton: true },
-        'mobx-react-lite': { singleton: true },
+        // Don't share mobx-react-lite - let each remote bundle its own copy
+        // This avoids issues where mobx-react-lite tries to access React before it's resolved
+        // mobx-react-lite removed from shared - will be bundled in each remote
         'react-router-dom': { singleton: true }
       }
     })

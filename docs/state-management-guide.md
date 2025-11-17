@@ -36,9 +36,9 @@ class AuthStore {
 - ✅ Clean, simple API
 - ✅ Works well with React via `mobx-react-lite`
 
-### Remote Modules: Props-Based (No MobX Required)
+### Remote Modules: Props-Based (MobX Optional)
 
-Remote modules **do NOT need MobX**. They receive state via **props injection**:
+Remote modules receive state via **props injection** from the portal. They can use MobX internally for their own state management, but they don't need MobX to access portal state:
 
 ```typescript
 // packages/trade-plans/src/App.tsx
@@ -47,6 +47,7 @@ interface AppProps {
     user?: any
     token?: string | null
     groups?: string[]
+    roles?: string[]
     isAuthenticated?: boolean
     hasGroup?: (group: string) => boolean
     hasAnyGroup?: (groups: string[]) => boolean
@@ -57,12 +58,15 @@ interface AppProps {
 
 export default function App(props: AppProps = {}) {
   const { auth } = props
-  // Use auth state directly - no MobX needed!
+  // Use auth state directly from props
+  
+  // Note: Trade Plans module uses MobX internally (TradePlanStore)
+  // for managing trade plan data, but portal auth state comes via props
   
   return (
     <div>
       {auth?.user?.name && <p>Welcome, {auth.user.name}</p>}
-      {auth?.hasGroup?.('traders') && <button>Create Trade</button>}
+      {auth?.hasRole?.('trader') && <button>Create Trade Plan</button>}
     </div>
   )
 }
@@ -208,46 +212,85 @@ export default function App(props: AppProps = {}) {
 }
 ```
 
-### Option 3: MobX (Optional - If You Want It)
+### Option 3: MobX (Used by Trade Plans Module)
 
-**You CAN use MobX in remotes if you want**, but it's **not required**:
+**The Trade Plans module uses MobX** for managing trade plan data:
 
 ```typescript
-// packages/trade-plans/src/stores/TradeStore.ts
-import { makeAutoObservable } from 'mobx'
+// packages/trade-plans/src/stores/TradePlanStore.ts
+import { makeAutoObservable, runInAction } from 'mobx'
+import axios from 'axios'
 
-class TradeStore {
-  trades = []
+class TradePlanStore {
+  tradePlans: TradePlan[] = []
+  selectedTradePlan: TradePlan | null = null
   isLoading = false
+  error: string | null = null
   
-  constructor() {
+  constructor(apiBaseUrl?: string, authToken?: string) {
     makeAutoObservable(this)
+    this.setupAxiosInterceptor(authToken)
   }
   
-  async loadTrades(token: string) {
-    this.isLoading = true
-    // ... fetch trades
-    this.trades = data
-    this.isLoading = false
+  async fetchTradePlans() {
+    runInAction(() => {
+      this.isLoading = true
+      this.error = null
+    })
+    
+    try {
+      const response = await axios.get(`${this.apiBaseUrl}/trade-plans`)
+      runInAction(() => {
+        this.tradePlans = response.data.tradePlans || []
+      })
+    } catch (error) {
+      runInAction(() => {
+        this.error = error.message
+      })
+    } finally {
+      runInAction(() => {
+        this.isLoading = false
+      })
+    }
   }
 }
 
-// packages/trade-plans/src/App.tsx
-import { observer } from 'mobx-react-lite'
+// packages/trade-plans/src/components/TradePlanList.tsx
+// Note: Uses manual reactivity (not observer wrapper) for Module Federation compatibility
+import { useState, useEffect } from 'react'
+import { reaction } from 'mobx'
 
-export default observer(function App(props: AppProps = {}) {
-  const { auth } = props
-  const tradeStore = new TradeStore()
+function TradePlanList({ auth, store }: TradePlanListProps) {
+  const [, forceUpdate] = useState({})
+  
+  // Subscribe to store changes manually using MobX reaction
+  useEffect(() => {
+    const disposer = reaction(
+      () => ({
+        tradePlans: store.tradePlans,
+        isLoading: store.isLoading,
+        error: store.error
+      }),
+      () => {
+        forceUpdate({}) // Force re-render when store changes
+      }
+    )
+    
+    return () => disposer()
+  }, [store])
   
   useEffect(() => {
-    tradeStore.loadTrades(auth?.token)
+    if (auth?.token) {
+      store.setAuthToken(auth.token)
+    }
+    store.fetchTradePlans()
   }, [auth?.token])
   
-  return <TradeList trades={tradeStore.trades} />
-})
+  return <div>{/* Render trade plans */}</div>
+}
 ```
 
-**Note:** MobX is shared via Module Federation, so you can use it, but it's optional.
+**Important Note:** Trade Plans uses **manual reactivity** with MobX `reaction` instead of the `observer` wrapper. This avoids React null errors in Module Federation. See [Module Federation Guide](./module-federation-guide.md) for details.
 
 ## State Sharing Strategy: Props Injection
 

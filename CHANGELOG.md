@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Trade Plans Module - DCA Functionality**
+  - Complete Dollar Cost Averaging (DCA) trade plan management system
+  - Trade plan CRUD operations (Create, Read, Update, Delete)
+  - Multi-security support with allocation percentages
+  - Flexible trade frequencies (daily, weekly, bi-weekly, monthly, quarterly)
+  - Trade plan status management (active, paused, completed, cancelled)
+  - Trade execution tracking (total invested, trades executed, next trade date)
+  - Role-based access control (trader and admin roles)
+  - TradePlanList component with summary cards
+  - TradePlanDetail component for detailed plan view
+  - TradePlanForm component for creating/editing plans
+  - TradePlanStore (MobX) for state management
+  - Mock API handlers for trade plans endpoints
 - ESLint configuration for code quality
 - CI/CD workflows for automated testing and building
 - CONTRIBUTING.md with contribution guidelines
@@ -15,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - .env.example files for environment configuration
 - Clean scripts for all packages
 - Lint scripts for all packages
+- Trade Plans module README.md
 
 ### Changed
 - Production build configuration: enabled minification and CSS code splitting

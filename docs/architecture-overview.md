@@ -113,9 +113,10 @@ packages/
 │   └── Shared State Management
 │
 ├── trade-plans/              # Remote module 1
-│   ├── Trade Management
-│   ├── Strategy Builder
-│   └── Analytics
+│   ├── Dollar Cost Averaging (DCA) Trade Plans
+│   ├── Trade Plan Management (CRUD)
+│   ├── Multi-Security Allocation
+│   └── Trade Execution Tracking
 │
 ├── client-verification/      # Remote module 2
 │   ├── Verification Queue
@@ -387,7 +388,7 @@ The portal injects authentication state into remotes via props:
 
 Each remote module manages its own internal routing:
 
-- **Trade Plans**: `/trade-plans/`, `/trade-plans/strategies`, `/trade-plans/analytics`
+- **Trade Plans**: `/trade-plans/` (list), `/trade-plans/create`, `/trade-plans/:id` (detail), `/trade-plans/:id/edit`
 - **Client Verification**: `/client-verification/`, `/client-verification/queue`, `/client-verification/profile/:id`
 - **Annuity Sales**: `/annuity-sales/`, `/annuity-sales/products`, `/annuity-sales/quotes`
 
@@ -402,6 +403,36 @@ flowchart LR
     CheckModule -->|Yes| LoadModule[Load Module]
     LoadModule --> ModuleRoute[Module Internal Routes]
 ```
+
+## Module Details
+
+### Trade Plans Module
+
+The Trade Plans module provides comprehensive Dollar Cost Averaging (DCA) trade plan management:
+
+**Features:**
+- **Trade Plan CRUD**: Create, read, update, and delete DCA trade plans
+- **Multi-Security Support**: Configure multiple securities per plan with allocation percentages
+- **Flexible Scheduling**: Daily, weekly, bi-weekly, monthly, or quarterly trade frequencies
+- **Status Management**: Active, paused, completed, or cancelled plan states
+- **Execution Tracking**: Monitor trade execution history, total invested, and next trade dates
+- **Role-Based Access**: Trader and admin roles can create/edit plans; others can view
+
+**Components:**
+- `TradePlanList` - Displays all trade plans with summary cards and filtering
+- `TradePlanDetail` - Shows detailed information for a single plan
+- `TradePlanForm` - Create/edit form with validation and allocation management
+
+**State Management:**
+- `TradePlanStore` (MobX) - Manages trade plan data and API interactions
+- Manual reactivity using MobX `reaction` (compatible with Module Federation)
+
+**API Endpoints:**
+- `GET /api/trade-plans` - List all plans
+- `GET /api/trade-plans/:id` - Get plan details
+- `POST /api/trade-plans` - Create new plan
+- `PUT /api/trade-plans/:id` - Update plan
+- `DELETE /api/trade-plans/:id` - Delete plan
 
 ## Deployment Architecture
 

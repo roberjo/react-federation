@@ -7,7 +7,7 @@ A production-ready enterprise portal application using React 18, Vite, MobX, and
 This project uses a **pnpm monorepo** for the portal shell and all remotes:
 
 - **Portal** – Main host application with authentication, layout, and Module Federation integration
-- **Trade Plans** – Remote module for trade strategy management
+- **Trade Plans** – Remote module for Dollar Cost Averaging (DCA) trade plan management
 - **Client Verification** – Remote module for KYC queue and escalation workflows
 - **Annuity Sales** – Remote module for annuity pipeline tracking
 - **Shared** – Shared TypeScript types and utilities consumed by the host and remotes
@@ -150,7 +150,7 @@ Comprehensive documentation is available in the `docs/` directory:
 - [x] Portal host with authentication, layout Shell, and ModuleLoader
 - [x] Mock Okta + MSW service layer
 - [x] Shadcn/Tailwind design system migration
-- [x] Trade Plans remote (strategy dashboard)
+- [x] Trade Plans remote (DCA trade plan management with full CRUD operations)
 - [x] Client Verification remote (KYC queue)
 - [x] Annuity Sales remote (pipeline dashboard)
 - [x] Sample CDN manifest and runtime manifest service

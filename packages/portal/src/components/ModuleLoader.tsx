@@ -76,6 +76,56 @@ const loadRemoteModule = (remoteName: string, module: string) => {
       // This ensures remote modules can access the host's React instance
       const sharedScope = initializeSharedScope()
       
+      // Ensure React is available in shared scope before loading remote
+      // mobx-react-lite needs React to be available immediately
+      if (!sharedScope.default?.react?.['18.2.0']) {
+        sharedScope.default = sharedScope.default || {}
+        sharedScope.default.react = {
+          '18.2.0': {
+            get: () => Promise.resolve(() => Promise.resolve(React)),
+            loaded: true,
+            from: 'portal'
+          }
+        }
+      }
+      if (!sharedScope.default?.['react-dom']?.['18.2.0']) {
+        sharedScope.default['react-dom'] = {
+          '18.2.0': {
+            get: () => Promise.resolve(() => Promise.resolve(ReactDOM)),
+            loaded: true,
+            from: 'portal'
+          }
+        }
+      }
+      
+      // CRITICAL: Pre-resolve React synchronously BEFORE loading remote module
+      // mobx-react-lite needs React to be available immediately when it initializes
+      // The federation plugin resolves shared dependencies asynchronously, but
+      // mobx-react-lite tries to access React synchronously during module initialization
+      const reactVersion = sharedScope.default.react['18.2.0']
+      if (reactVersion) {
+        // Pre-resolve React so it's available synchronously
+        // The federation runtime checks for _resolved property for synchronous access
+        reactVersion._resolved = React
+        // Also ensure the get() function returns the resolved React immediately
+        reactVersion.get = () => Promise.resolve(() => Promise.resolve(React))
+      }
+      const reactDomVersion = sharedScope.default['react-dom']['18.2.0']
+      if (reactDomVersion) {
+        reactDomVersion._resolved = ReactDOM
+        reactDomVersion.get = () => Promise.resolve(() => Promise.resolve(ReactDOM))
+      }
+      
+      // CRITICAL: Expose React globally as a fallback for synchronous access
+      // Some libraries like mobx-react-lite need React to be available synchronously
+      // before the federation runtime resolves it asynchronously
+      if (!(window as any).__REACT_FEDERATION__) {
+        (window as any).__REACT_FEDERATION__ = React
+      }
+      if (!(window as any).__REACT_DOM_FEDERATION__) {
+        (window as any).__REACT_DOM_FEDERATION__ = ReactDOM
+      }
+      
       // Load remoteEntry.js as an ES module
       // @originjs/vite-plugin-federation exports get() and init() functions directly
       const remoteModule = await import(/* @vite-ignore */ remoteUrl)
@@ -86,9 +136,14 @@ const loadRemoteModule = (remoteName: string, module: string) => {
 
       // Initialize the remote module with the shared scope
       // This allows the remote to access shared dependencies like React
+      // CRITICAL: React must be resolved BEFORE init() is called
       if (typeof remoteModule.init === 'function') {
         await remoteModule.init(sharedScope)
       }
+      
+      // CRITICAL: Wait a tick to ensure React is fully resolved before getting the module
+      // This gives the federation runtime time to resolve React synchronously
+      await new Promise(resolve => setTimeout(resolve, 0))
 
       // Get the module factory using the exported get() function
       const modulePath = module.startsWith('./') ? module : `./${module}`
